@@ -1,0 +1,690 @@
+🌿 ERP Natural — MVP
+
+Sistema ERP (Enterprise Resource Planning) desenvolvido para empresas que trabalham exclusivamente com produtos naturais, oferecendo uma solução centralizada para gerenciamento de estoque, produtos, fornecedores, clientes, vendas e operações entre unidades.
+
+O projeto tem como principal objetivo fornecer uma base simples, escalável e modular para controlar as principais operações de um negócio de produtos naturais.
+
+📌 Sobre o Projeto
+
+O ERP Natural é um sistema de gestão empresarial desenvolvido inicialmente como um MVP (Minimum Viable Product).
+
+A aplicação busca centralizar informações e processos que normalmente são realizados de forma descentralizada, permitindo maior controle sobre:
+
+Estoque
+Produtos
+Categorias
+Entradas e saídas
+Compras
+Vendas
+Clientes
+Fornecedores
+Usuários e vendedores
+Comissões e metas
+Promoções e ofertas
+Transferências entre unidades
+Indicadores e gráficos
+Operações multiunidade
+
+A arquitetura foi pensada para permitir a evolução futura do sistema sem comprometer a organização inicial do projeto.
+
+🎯 Objetivos do MVP
+
+O MVP tem como principais objetivos:
+
+Centralizar o gerenciamento do estoque.
+Facilitar o cadastro e gerenciamento de produtos naturais.
+Controlar entradas e saídas de produtos.
+Registrar vendas e manter seu histórico.
+Gerenciar fornecedores e pedidos de compra.
+Permitir o gerenciamento de múltiplas unidades.
+Controlar usuários, vendedores, permissões e acessos.
+Disponibilizar indicadores para acompanhamento do negócio.
+Permitir exportação de dados.
+Criar uma base sólida para futuras funcionalidades do ERP.
+🚀 Funcionalidades
+📦 Gerenciamento de Estoque
+
+Controle completo da movimentação dos produtos.
+
+Visualização do estoque atual
+Controle de entradas
+Controle de saídas
+Histórico de movimentações
+Controle por unidade
+Identificação de produtos com estoque baixo
+Controle de disponibilidade dos produtos
+🌱 Cadastro de Produtos
+
+Cadastro e gerenciamento dos produtos comercializados.
+
+Nome
+SKU/código
+Descrição
+Categoria
+Preço de custo
+Preço de venda
+Estoque mínimo
+Unidade de medida
+Imagens
+Status do produto
+Fornecedor
+Informações específicas do produto natural
+
+A estrutura poderá ser expandida futuramente para contemplar informações como lote, validade e características específicas de produtos naturais.
+
+🗂️ Categorias
+
+Organização dos produtos através de categorias.
+
+Exemplos:
+
+Suplementos
+Chás
+Ervas
+Produtos a granel
+Alimentos naturais
+Cosméticos naturais
+Óleos essenciais
+Produtos orgânicos
+🔄 Entradas e Saídas
+
+Registro das movimentações de estoque.
+
+Entradas:
+
+Compra de produtos
+Ajustes de estoque
+Transferências recebidas
+Outras entradas
+
+Saídas:
+
+Venda
+Ajustes de estoque
+Transferências
+Perdas
+Outras saídas
+
+Todas as movimentações devem possuir histórico para permitir rastreabilidade.
+
+📊 Dashboard e Gráficos
+
+Dashboard para acompanhamento dos principais indicadores do negócio.
+
+Exemplos de indicadores:
+
+Total de vendas
+Produtos mais vendidos
+Produtos com estoque baixo
+Estoque por categoria
+Vendas por período
+Vendas por unidade
+Faturamento
+Ticket médio
+Desempenho dos vendedores
+Comissões
+Metas
+🔐 Autenticação e Autorização
+
+Controle seguro de acesso ao sistema utilizando Spring Security.
+
+Possibilidade de trabalhar com diferentes níveis de acesso, como:
+
+Administrador
+Gerente
+Vendedor
+Operador de estoque
+
+O sistema deverá utilizar controle baseado em roles/permissões, permitindo determinar quais recursos cada usuário pode acessar.
+
+🛒 Pedido de Compra
+
+Gerenciamento de pedidos realizados junto aos fornecedores.
+
+Fluxo inicial:
+
+Pedido criado
+     ↓
+Pedido enviado
+     ↓
+Pedido recebido
+     ↓
+Estoque atualizado
+
+
+Informações previstas:
+
+Fornecedor
+Produtos
+Quantidades
+Preços
+Data
+Status
+Unidade de destino
+Observações
+🏭 Cadastro de Fornecedores
+
+Cadastro das empresas e pessoas responsáveis pelo fornecimento dos produtos.
+
+Informações:
+
+Razão social/nome
+CNPJ/CPF
+E-mail
+Telefone
+Endereço
+Produtos fornecidos
+Histórico de compras
+👥 Cadastro de Clientes
+
+Gerenciamento dos clientes da empresa.
+
+Informações:
+
+Nome
+CPF/CNPJ
+E-mail
+Telefone
+Endereço
+Histórico de compras
+Status
+💰 Histórico de Vendas
+
+Registro das vendas realizadas pelo sistema.
+
+Possibilidades:
+
+Consulta de vendas
+Filtros por período
+Filtro por cliente
+Filtro por vendedor
+Filtro por unidade
+Detalhamento dos produtos
+Valor total
+Forma de pagamento
+Histórico da operação
+📤 Exportação de Dados
+
+Permitir a exportação das informações do sistema para facilitar análises externas.
+
+Formatos:
+
+CSV
+Excel (.xlsx)
+
+Dados que poderão ser exportados:
+
+Produtos
+Estoque
+Clientes
+Fornecedores
+Vendas
+Movimentações
+Comissões
+🔁 Pedido de Transferência
+
+Permite solicitar e controlar transferências de produtos entre unidades.
+
+Exemplo:
+
+Unidade A
+   │
+   │ Pedido de transferência
+   ↓
+Unidade B
+   │
+   │ Aprovação
+   ↓
+Separação
+   │
+   ↓
+Envio
+   │
+   ↓
+Recebimento
+   │
+   ↓
+Estoque atualizado
+
+🏢 Gerenciamento Multiunidade
+
+O ERP deverá suportar múltiplas unidades dentro da mesma organização.
+
+Exemplo:
+
+Empresa
+├── Matriz
+├── Unidade Centro
+├── Unidade Norte
+└── Unidade Sul
+
+
+Cada unidade poderá possuir:
+
+Estoque próprio
+Vendedores
+Vendas
+Transferências
+Metas
+Indicadores
+
+Usuários poderão possuir acesso a uma ou mais unidades de acordo com suas permissões.
+
+👨‍💼 Usuário Vendedor
+
+Usuários podem ser associados ao perfil de vendedor.
+
+Possibilidades:
+
+Registrar vendas
+Consultar suas vendas
+Acompanhar metas
+Consultar comissão
+Visualizar desempenho
+🎯 Comissões e Metas
+
+Gerenciamento de metas comerciais e comissões.
+
+Possibilidades futuras:
+
+Meta mensal
+Meta semanal
+Meta por vendedor
+Meta por unidade
+Comissão percentual
+Comissão por produto
+Comissão por categoria
+Ranking de vendedores
+Acompanhamento de progresso
+🏷️ Promoções e Ofertas
+
+Gerenciamento de promoções para os produtos.
+
+Exemplos:
+
+Desconto percentual
+Desconto fixo
+Produto em promoção
+Promoção por período
+Promoção por categoria
+Kits
+Ofertas específicas por unidade
+🖼️ Hospedagem de Imagens
+
+Gerenciamento das imagens utilizadas pelos produtos.
+
+A arquitetura deverá permitir armazenar imagens externamente, evitando sobrecarregar o banco de dados.
+
+Estrutura conceitual:
+
+Produto
+   │
+   └── Imagens
+        ├── Principal
+        ├── Galeria
+        └── Outras
+
+🏗️ Arquitetura
+
+O projeto será dividido inicialmente em duas aplicações principais:
+
+erp-natural/
+│
+├── backend/
+│   └── Spring Boot
+│
+├── frontend/
+│   └── React / Vue
+│
+├── docs/
+│   └── Documentação
+│
+└── README.md
+
+
+A comunicação entre frontend e backend será realizada através de uma API REST.
+
+┌──────────────────────┐
+│      Frontend        │
+│   React / Vue        │
+└──────────┬───────────┘
+           │
+           │ HTTP / REST
+           ↓
+┌──────────────────────┐
+│       Backend        │
+│    Spring Boot       │
+│   Spring Security    │
+└──────────┬───────────┘
+           │
+           │ JPA / Hibernate
+           ↓
+┌──────────────────────┐
+│      PostgreSQL      │
+└──────────────────────┘
+
+🛠️ Stack Tecnológica
+Backend
+Java
+Spring Boot
+Spring Security
+Spring Data JPA
+Hibernate
+API REST
+Bean Validation
+Frontend
+
+Uma das seguintes tecnologias será utilizada:
+
+React
+Vue
+
+O frontend será responsável pela interface administrativa e operacional do ERP.
+
+Banco de Dados
+PostgreSQL
+
+O PostgreSQL será utilizado como banco de dados principal da aplicação.
+
+Versionamento
+Git
+
+O código será versionado utilizando Git.
+
+Recomenda-se a utilização de uma estratégia de branches, por exemplo:
+
+main
+ └── develop
+      ├── feature/estoque
+      ├── feature/produtos
+      ├── feature/vendas
+      └── feature/usuarios
+
+Documentação
+Swagger / OpenAPI
+
+A API será documentada através do Swagger/OpenAPI, permitindo visualizar e testar os endpoints.
+
+Kubb
+
+O Kubb Framework poderá ser utilizado para geração de código e integração entre a documentação da API e o frontend, reduzindo código manual e mantendo os contratos tipados.
+
+🗃️ Módulos do Sistema
+
+Uma possível divisão dos módulos:
+
+ERP Natural
+│
+├── Autenticação
+│
+├── Usuários
+│
+├── Unidades
+│
+├── Produtos
+│   └── Categorias
+│
+├── Estoque
+│   ├── Entradas
+│   ├── Saídas
+│   └── Transferências
+│
+├── Compras
+│   ├── Fornecedores
+│   └── Pedidos de compra
+│
+├── Vendas
+│   ├── Clientes
+│   ├── Vendas
+│   └── Histórico
+│
+├── Vendedores
+│   ├── Metas
+│   └── Comissões
+│
+├── Promoções
+│
+├── Relatórios
+│
+└── Dashboard
+
+🧩 Principais Entidades
+
+A estrutura inicial do domínio poderá conter entidades como:
+
+User
+Role
+Permission
+
+Company
+Unit
+
+Product
+Category
+ProductImage
+
+Supplier
+Customer
+
+Stock
+StockMovement
+
+PurchaseOrder
+PurchaseOrderItem
+
+Sale
+SaleItem
+
+TransferOrder
+TransferOrderItem
+
+Seller
+Commission
+Goal
+
+Promotion
+
+
+A modelagem definitiva deverá ser realizada conforme as regras de negócio identificadas durante o desenvolvimento.
+
+🔒 Segurança
+
+O backend utilizará Spring Security para autenticação e autorização.
+
+A API deverá proteger recursos através de autenticação e permissões.
+
+Exemplo conceitual:
+
+ADMIN
+ ├── Usuários
+ ├── Produtos
+ ├── Estoque
+ ├── Compras
+ ├── Vendas
+ └── Configurações
+
+GERENTE
+ ├── Produtos
+ ├── Estoque
+ ├── Compras
+ ├── Vendas
+ └── Relatórios
+
+VENDEDOR
+ ├── Clientes
+ ├── Vendas
+ └── Metas
+
+ESTOQUISTA
+ ├── Estoque
+ ├── Entradas
+ ├── Saídas
+ └── Transferências
+
+📈 Roadmap do MVP
+Fase 1 — Fundação
+ Configuração do projeto
+ Estrutura do backend
+ Estrutura do frontend
+ Configuração do PostgreSQL
+ Configuração do Git
+ Configuração do Swagger
+ Autenticação
+ Autorização
+Fase 2 — Cadastros
+ Usuários
+ Unidades
+ Categorias
+ Produtos
+ Clientes
+ Fornecedores
+Fase 3 — Estoque
+ Controle de estoque
+ Entrada de produtos
+ Saída de produtos
+ Histórico de movimentações
+ Estoque mínimo
+ Transferência entre unidades
+Fase 4 — Compras e Vendas
+ Pedido de compra
+ Recebimento de pedido
+ Registro de vendas
+ Histórico de vendas
+ Associação de vendedor
+ Atualização automática do estoque
+Fase 5 — Comercial
+ Metas
+ Comissões
+ Promoções
+ Ofertas
+Fase 6 — Relatórios
+ Dashboard
+ Gráficos
+ Relatório de estoque
+ Relatório de vendas
+ Relatório de compras
+ Exportação CSV
+ Exportação Excel
+🔄 Fluxos Principais
+Compra → Estoque
+Fornecedor
+     ↓
+Pedido de Compra
+     ↓
+Recebimento
+     ↓
+Entrada no Estoque
+     ↓
+Estoque Atualizado
+
+Venda → Estoque
+Cliente
+   ↓
+Venda
+   ↓
+Validação do Estoque
+   ↓
+Finalização
+   ↓
+Saída do Estoque
+   ↓
+Histórico de Venda
+
+Transferência
+Unidade Origem
+      ↓
+Pedido de Transferência
+      ↓
+Aprovação
+      ↓
+Separação
+      ↓
+Envio
+      ↓
+Recebimento
+      ↓
+Atualização dos Estoques
+
+⚙️ Requisitos para Desenvolvimento
+
+Antes de executar o projeto, será necessário possuir:
+
+Java 21+
+Node.js 20+
+PostgreSQL 16+
+Git
+Maven ou Maven Wrapper
+IDE de preferência
+Docker (opcional, recomendado)
+🚀 Executando o Projeto
+Backend
+
+Clone o projeto:
+
+git clone <repository-url>
+cd erp-natural/backend
+
+
+Execute:
+
+./mvnw spring-boot:run
+
+
+No Windows:
+
+mvnw.cmd spring-boot:run
+
+Frontend
+
+Entre no diretório:
+
+cd frontend
+
+
+Instale as dependências:
+
+npm install
+
+
+Execute o projeto:
+
+npm run dev
+
+🐘 Banco de Dados
+
+Exemplo de configuração:
+
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=erp_natural
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+
+
+As configurações reais devem ser mantidas em variáveis de ambiente e não devem ser versionadas no Git.
+
+📚 Documentação da API
+
+Após executar o backend, a documentação da API ficará disponível através do Swagger.
+
+A documentação deverá permitir:
+
+Visualização dos endpoints
+Consulta dos modelos
+Teste das requisições
+Visualização dos códigos HTTP
+Consulta dos schemas
+Autenticação para endpoints protegidos
+🧪 Qualidade
+
+O projeto deverá evoluir com testes automatizados.
+
+Backend
+Testes unitários
+Testes de integração
+Testes dos endpoints
+Testes das regras de negócio
+Frontend
+Testes de componentes
+Testes de integração
+Testes dos principais
