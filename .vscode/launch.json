@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "RestServiceApplication",
+            "request": "launch",
+            "mainClass": "com.vilaverde.restservice.RestServiceApplication",
+            "projectName": "rest-service"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-RestServiceApplication<rest-service>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.example.restservice.RestServiceApplication",
+            "projectName": "rest-service",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
