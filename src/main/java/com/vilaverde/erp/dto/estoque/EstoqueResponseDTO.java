@@ -3,7 +3,6 @@ package com.vilaverde.erp.dto.estoque;
 import com.vilaverde.erp.entity.EstoqueProduto;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record EstoqueResponseDTO(
@@ -17,10 +16,8 @@ public record EstoqueResponseDTO(
         String tipoTransacao,
         String nomeTransacao,
         BigDecimal quantidadeAnterior,
-        BigDecimal quantidadeRecebida,
-        BigDecimal quantidadeAtual,
-        String motivo,
-        LocalDateTime dataMovimentacao
+        Long quantidadeRecebida,
+        BigDecimal quantidadeAtual
 ) {
     public static EstoqueResponseDTO fromEntity(EstoqueProduto e) {
         return new EstoqueResponseDTO(
@@ -29,15 +26,13 @@ public record EstoqueResponseDTO(
                 e.getProduto().getNome(),
                 e.getLoja().getId(),
                 e.getLoja().getNomeFantasia(),
-                e.getFornecedor() != null ? e.getFornecedor().getId() : null,
-                e.getFornecedor() != null ? e.getFornecedor().getNomeFantasia() : null,
+                e.getFornecedor().getId(),
+                e.getFornecedor().getNomeFantasia(),
                 e.getTransacao().getTipo().name(),
                 e.getTransacao().getNome(),
                 e.getQuantidadeAnterior(),
                 e.getQuantidadeRecebida(),
-                e.getQuantidadeAtual(),
-                e.getMotivo(),
-                e.getDataMovimentacao()
+                e.getQuantidadeAtual()
         );
     }
 }

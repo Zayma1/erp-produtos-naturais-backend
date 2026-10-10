@@ -8,4 +8,10 @@ import java.util.UUID;
 
 public interface ProdutoSkuRepository extends JpaRepository<ProdutoSku, UUID> {
     List<ProdutoSku> findByProdutoId(UUID idProduto);
+
+    List<ProdutoSku> findByLojaId(UUID idLoja);
+
+    boolean existsBySku(String sku);
+
+    boolean existsBySkuAndIdNot(String sku, UUID id);
 }

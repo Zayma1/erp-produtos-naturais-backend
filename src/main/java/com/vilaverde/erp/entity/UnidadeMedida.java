@@ -10,7 +10,7 @@ import lombok.Setter;
 import java.util.UUID;
 
 @Entity
-@Table(name = "unidade_medida")
+@Table(name = "unidadeMedida")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -22,10 +22,10 @@ public class UnidadeMedida {
     private UUID id;
 
     @NotBlank(message = "Sigla é obrigatória")
-    @Column(nullable = false, length = 10)
+    @Column(name = "sigla", nullable = false)
     private String sigla;
 
     @NotBlank(message = "Nome é obrigatório")
-    @Column(nullable = false)
+    @Column(name = "nome", nullable = false)
     private String nome;
 }

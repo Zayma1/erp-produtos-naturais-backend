@@ -9,11 +9,11 @@ import java.util.UUID;
 
 public record ProdutoSkuRequestDTO(
         @NotNull(message = "Produto é obrigatório") UUID idProduto,
-        @NotNull(message = "Loja é obrigatória") UUID idLoja,
         @NotNull(message = "Preço é obrigatório") BigDecimal preco,
         StatusProduto status,
         @NotBlank(message = "SKU é obrigatório") String sku,
         String ean13,
-        String dun14
+        String dun14,
+        UUID idLoja
 ) {
 }

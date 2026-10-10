@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
-@Table(name = "produto_sku")
+@Table(name = "produtoSku")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -29,27 +29,26 @@ public class ProdutoSku {
     @JoinColumn(name = "idProduto", nullable = false)
     private Produto produto;
 
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "idLoja", nullable = false)
-    private Loja loja;
-
     @NotNull(message = "Preço é obrigatório")
-    @Column(nullable = false, precision = 12, scale = 2)
+    @Column(name = "preco", nullable = false, precision = 12, scale = 2)
     private BigDecimal preco;
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "status", nullable = false)
     private StatusProduto status = StatusProduto.ATIVO;
 
     @NotBlank(message = "SKU é obrigatório")
-    @Column(nullable = false, unique = true)
+    @Column(name = "sku", nullable = false, unique = true)
     private String sku;
 
-    @Column(length = 13)
+    @Column(name = "ean13")
     private String ean13;
 
-    @Column(length = 14)
+    @Column(name = "dun14")
     private String dun14;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "idloja")
+    private Loja loja;
 }

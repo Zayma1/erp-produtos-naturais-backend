@@ -22,18 +22,33 @@ public class Loja {
     private UUID id;
 
     @NotBlank(message = "Nome fantasia é obrigatório")
-    @Column(nullable = false)
+    @Column(name = "nomeFantasia", nullable = false, length = 150)
     private String nomeFantasia;
 
-    @Column(nullable = false)
+    @NotBlank(message = "Razão social é obrigatória")
+    @Column(name = "razaoSocial", nullable = false)
     private String razaoSocial;
 
+    @NotBlank(message = "Estado é obrigatório")
+    @Column(name = "estado", nullable = false)
     private String estado;
+
+    @NotBlank(message = "Cidade é obrigatória")
+    @Column(name = "cidade", nullable = false)
     private String cidade;
+
+    @NotBlank(message = "Bairro é obrigatório")
+    @Column(name = "bairro", nullable = false)
     private String bairro;
+
+    @NotBlank(message = "Número é obrigatório")
+    @Column(name = "numero", nullable = false)
     private String numero;
+
+    @Column(name = "complemento")
     private String complemento;
 
-    @Column(nullable = false, unique = true)
+    @NotBlank(message = "CNPJ é obrigatório")
+    @Column(name = "cnpj", nullable = false, unique = true)
     private String cnpj;
 }

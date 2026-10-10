@@ -8,8 +8,8 @@ import java.util.UUID;
 public record ProdutoResponseDTO(
         UUID id,
         String nome,
-        UUID idCategoria,
-        String nomeCategoria,
+        UUID idTipo,
+        String nomeTipo,
         UUID idUnidadeMedida,
         String siglaUnidadeMedida,
         StatusProduto status
@@ -18,8 +18,8 @@ public record ProdutoResponseDTO(
         return new ProdutoResponseDTO(
                 p.getId(),
                 p.getNome(),
-                p.getCategoria() != null ? p.getCategoria().getId() : null,
-                p.getCategoria() != null ? p.getCategoria().getNome() : null,
+                p.getTipo() != null ? p.getTipo().getId() : null,
+                p.getTipo() != null ? p.getTipo().getNome() : null,
                 p.getUnidadeMedida() != null ? p.getUnidadeMedida().getId() : null,
                 p.getUnidadeMedida() != null ? p.getUnidadeMedida().getSigla() : null,
                 p.getStatus()

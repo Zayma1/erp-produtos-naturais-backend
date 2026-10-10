@@ -22,6 +22,6 @@ public class Categoria {
     private UUID id;
 
     @NotBlank(message = "Nome da categoria é obrigatório")
-    @Column(nullable = false)
+    @Column(name = "nome", nullable = false, unique = true)
     private String nome;
 }
