@@ -10,7 +10,10 @@ import lombok.Setter;
 import java.util.UUID;
 
 @Entity
-@Table(name = "produto_loja", uniqueConstraints = @UniqueConstraint(columnNames = {"id_produto", "id_loja"}))
+@Table(
+        name = "produtoLoja",
+        uniqueConstraints = @UniqueConstraint(name = "uq_produtoLoja_produto_loja", columnNames = {"idProduto", "idLoja"})
+)
 @Getter
 @Setter
 @NoArgsConstructor

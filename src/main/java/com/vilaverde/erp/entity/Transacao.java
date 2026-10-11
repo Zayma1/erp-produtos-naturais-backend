@@ -24,15 +24,15 @@ public class Transacao {
     private UUID id;
 
     @NotBlank
-    @Column(nullable = false, length = 10)
+    @Column(name = "sigla", nullable = false)
     private String sigla;
 
     @NotBlank
-    @Column(nullable = false)
+    @Column(name = "nome", nullable = false)
     private String nome;
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "tipo", nullable = false)
     private TipoTransacao tipo;
 }

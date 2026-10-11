@@ -24,13 +24,13 @@ public class Produto {
     private UUID id;
 
     @NotBlank(message = "Nome do produto é obrigatório")
-    @Column(nullable = false)
+    @Column(name = "nome", nullable = false)
     private String nome;
 
-    @NotNull(message = "Categoria é obrigatória")
+    @NotNull(message = "Tipo/categoria é obrigatório")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "idCategoria", nullable = false)
-    private Categoria categoria;
+    @JoinColumn(name = "idTipo", nullable = false)
+    private Categoria tipo;
 
     @NotNull(message = "Unidade de medida é obrigatória")
     @ManyToOne(fetch = FetchType.LAZY)
@@ -39,6 +39,6 @@ public class Produto {
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "status", nullable = false)
     private StatusProduto status = StatusProduto.ATIVO;
 }

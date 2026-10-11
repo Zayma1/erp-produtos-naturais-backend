@@ -9,9 +9,11 @@ import java.util.UUID;
 
 public interface EstoqueProdutoRepository extends JpaRepository<EstoqueProduto, UUID> {
 
-    List<EstoqueProduto> findByProdutoIdAndLojaIdOrderByDataMovimentacaoDesc(UUID idProduto, UUID idLoja);
+    List<EstoqueProduto> findByProdutoIdAndLojaId(UUID idProduto, UUID idLoja);
 
-    Optional<EstoqueProduto> findFirstByProdutoIdAndLojaIdOrderByDataMovimentacaoDesc(UUID idProduto, UUID idLoja);
+    Optional<EstoqueProduto> findFirstByProdutoIdAndLojaId(UUID idProduto, UUID idLoja);
 
-    List<EstoqueProduto> findByProdutoIdOrderByDataMovimentacaoDesc(UUID idProduto);
+    List<EstoqueProduto> findByProdutoId(UUID idProduto);
+
+    List<EstoqueProduto> findByLojaId(UUID idLoja);
 }

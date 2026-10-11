@@ -1,17 +1,17 @@
 package com.vilaverde.erp.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "estoque_produto")
+@Table(name = "estoqueProduto")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -22,33 +22,32 @@ public class EstoqueProduto {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "idProduto", nullable = false)
     private Produto produto;
 
+    @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "idLoja", nullable = false)
     private Loja loja;
 
+    @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "idFornecedor")
+    @JoinColumn(name = "idFornecedor", nullable = false)
     private Fornecedor fornecedor;
 
+    @Column(name = "quantidadeAtual", nullable = false, precision = 12, scale = 3)
+    private BigDecimal quantidadeAtual = BigDecimal.ZERO;
+
+    @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "idTransacao", nullable = false)
     private Transacao transacao;
 
-    @Column(nullable = false, precision = 14, scale = 3)
-    private BigDecimal quantidadeAnterior;
+    @Column(name = "quantidadeAnterior", nullable = false, precision = 12, scale = 3)
+    private BigDecimal quantidadeAnterior = BigDecimal.ZERO;
 
-    @Column(nullable = false, precision = 14, scale = 3)
-    private BigDecimal quantidadeRecebida;
-
-    @Column(nullable = false, precision = 14, scale = 3)
-    private BigDecimal quantidadeAtual;
-
-    private String motivo;
-
-    @Column(nullable = false)
-    private LocalDateTime dataMovimentacao = LocalDateTime.now();
+    @Column(name = "quantidadeRecebida", nullable = false)
+    private Long quantidadeRecebida = 0L;
 }

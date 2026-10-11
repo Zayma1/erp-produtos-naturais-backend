@@ -10,26 +10,26 @@ public record ProdutoSkuResponseDTO(
         UUID id,
         UUID idProduto,
         String nomeProduto,
-        UUID idLoja,
-        String nomeLoja,
         BigDecimal preco,
         StatusProduto status,
         String sku,
         String ean13,
-        String dun14
+        String dun14,
+        UUID idLoja,
+        String nomeLoja
 ) {
     public static ProdutoSkuResponseDTO fromEntity(ProdutoSku s) {
         return new ProdutoSkuResponseDTO(
                 s.getId(),
                 s.getProduto().getId(),
                 s.getProduto().getNome(),
-                s.getLoja().getId(),
-                s.getLoja().getNomeFantasia(),
                 s.getPreco(),
                 s.getStatus(),
                 s.getSku(),
                 s.getEan13(),
-                s.getDun14()
+                s.getDun14(),
+                s.getLoja() != null ? s.getLoja().getId() : null,
+                s.getLoja() != null ? s.getLoja().getNomeFantasia() : null
         );
     }
 }
