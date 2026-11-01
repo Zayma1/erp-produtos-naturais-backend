@@ -1,17 +1,14 @@
 package com.vilaverde.erp.repository;
 
 import com.vilaverde.erp.entity.ProdutoSku;
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ProdutoSkuRepository extends JpaRepository<ProdutoSku, UUID> {
-    List<ProdutoSku> findByProdutoId(UUID idProduto);
+  List<ProdutoSku> findByProdutoId(UUID idProduto);
 
-    List<ProdutoSku> findByLojaId(UUID idLoja);
+  boolean existsBySku(String sku);
 
-    boolean existsBySku(String sku);
-
-    boolean existsBySkuAndIdNot(String sku, UUID id);
+  boolean existsBySkuAndIdNot(String sku, UUID id);
 }
