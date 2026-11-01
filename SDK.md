@@ -11,20 +11,11 @@ npm install
 npm run sdk:generate
 ```
 
-Por padrão, o Kubb consulta `http://localhost:8080/v3/api-docs` e grava os arquivos em `generated/sdk`.
+Por padrão, o Kubb consulta o contrato publicado em:
+`https://erp-produtos-naturais-backend.onrender.com/v3/api-docs`.
 
-Para usar outro ambiente:
-
-```bash
-OPENAPI_URL=https://api.exemplo.com/v3/api-docs npm run sdk:generate
-```
-
-No Windows PowerShell:
-
-```powershell
-$env:OPENAPI_URL = "https://api.exemplo.com/v3/api-docs"
-npm run sdk:generate
-```
+Esse endereço está configurado em `kubb.config.ts`, e os arquivos são gravados
+em `generated/sdk`.
 
 O frontend deve instalar `axios` e `@tanstack/react-query`. Depois de copiar ou publicar `generated/sdk`, configure a URL da API antes de usar o cliente:
 
@@ -32,7 +23,7 @@ O frontend deve instalar `axios` e `@tanstack/react-query`. Depois de copiar ou 
 import { client } from './generated/sdk/.kubb/client'
 
 client.setConfig({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: 'https://erp-produtos-naturais-backend.onrender.com',
 })
 ```
 

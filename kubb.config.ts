@@ -3,7 +3,8 @@ import { pluginAxios } from '@kubb/plugin-axios'
 import { pluginReactQuery } from '@kubb/plugin-react-query'
 import { pluginTs } from '@kubb/plugin-ts'
 
-const openApiUrl = process.env.OPENAPI_URL ?? 'http://localhost:8080/v3/api-docs'
+const apiUrl = 'https://erp-produtos-naturais-backend.onrender.com'
+const openApiUrl = `${apiUrl}/v3/api-docs`
 
 export default defineConfig({
   name: 'erp-produtos-naturais-sdk',
@@ -20,7 +21,7 @@ export default defineConfig({
       },
     }),
     pluginAxios({
-      baseURL: '${import.meta.env.VITE_API_URL}',
+      baseURL: apiUrl,
       output: {
         path: 'clients',
         barrel: { type: 'named' },
