@@ -2,14 +2,12 @@ package com.vilaverde.erp.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "usuario")
@@ -19,29 +17,31 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Usuario {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
 
-    @NotBlank(message = "Nome é obrigatório")
-    @Column(name = "nome", nullable = false)
-    private String nome;
+  @NotBlank(message = "Nome é obrigatório")
+  @Column(name = "nome", nullable = false)
+  private String nome;
 
-    @NotBlank(message = "E-mail é obrigatório")
-    @Column(name = "email", nullable = false, unique = true)
-    private String email;
+  @NotBlank(message = "E-mail é obrigatório")
+  @Column(name = "email", nullable = false, unique = true)
+  private String email;
 
-    @NotBlank(message = "Senha é obrigatória")
-    @Column(name = "senha", nullable = false)
-    private String senha;
+  @NotBlank(message = "Senha é obrigatória")
+  @Column(name = "senha_hash", nullable = false)
+  private String senhaHash;
 
-    @Column(name = "criacaoTimestamp", nullable = false)
-    private LocalDateTime criacaoTimestamp = LocalDateTime.now();
+  @NotBlank
+  @Column(name = "cargo", nullable = false)
+  private String cargo = "FUNCIONARIO";
 
-    @Column(name = "dataCriacao", nullable = false)
-    private LocalDate dataCriacao = LocalDate.now();
+  @Enumerated(EnumType.STRING)
+  @Column(name = "status", nullable = false, length = 20)
+  private com.vilaverde.erp.entity.enums.StatusCadastro status =
+    com.vilaverde.erp.entity.enums.StatusCadastro.ATIVO;
 
-    @NotBlank
-    @Column(name = "cargo", nullable = false)
-    private String cargo = "func";
+  @Column(name = "criado_em", nullable = false)
+  private OffsetDateTime criadoEm = OffsetDateTime.now();
 }

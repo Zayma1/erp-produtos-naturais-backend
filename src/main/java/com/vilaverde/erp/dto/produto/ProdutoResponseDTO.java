@@ -2,27 +2,31 @@ package com.vilaverde.erp.dto.produto;
 
 import com.vilaverde.erp.entity.Produto;
 import com.vilaverde.erp.entity.enums.StatusProduto;
-
+import com.vilaverde.erp.entity.enums.TipoVenda;
 import java.util.UUID;
 
 public record ProdutoResponseDTO(
-        UUID id,
-        String nome,
-        UUID idTipo,
-        String nomeTipo,
-        UUID idUnidadeMedida,
-        String siglaUnidadeMedida,
-        StatusProduto status
+  UUID id,
+  String nome,
+  UUID idCategoria,
+  String nomeCategoria,
+  UUID idUnidadeMedida,
+  String siglaUnidadeMedida,
+  String descricao,
+  TipoVenda tipoVenda,
+  StatusProduto status
 ) {
-    public static ProdutoResponseDTO fromEntity(Produto p) {
-        return new ProdutoResponseDTO(
-                p.getId(),
-                p.getNome(),
-                p.getTipo() != null ? p.getTipo().getId() : null,
-                p.getTipo() != null ? p.getTipo().getNome() : null,
-                p.getUnidadeMedida() != null ? p.getUnidadeMedida().getId() : null,
-                p.getUnidadeMedida() != null ? p.getUnidadeMedida().getSigla() : null,
-                p.getStatus()
-        );
-    }
+  public static ProdutoResponseDTO fromEntity(Produto p) {
+    return new ProdutoResponseDTO(
+      p.getId(),
+      p.getNome(),
+      p.getCategoria() != null ? p.getCategoria().getId() : null,
+      p.getCategoria() != null ? p.getCategoria().getNome() : null,
+      p.getUnidadeMedida() != null ? p.getUnidadeMedida().getId() : null,
+      p.getUnidadeMedida() != null ? p.getUnidadeMedida().getSigla() : null,
+      p.getDescricao(),
+      p.getTipoVenda(),
+      p.getStatus()
+    );
+  }
 }

@@ -1,0 +1,12 @@
+package com.vilaverde.erp.entity.enums;
+
+public enum TipoMovimentacao {
+  ENTRADA_COMPRA,
+  SAIDA_VENDA,
+  AJUSTE_ENTRADA,
+  AJUSTE_SAIDA,
+  TRANSFERENCIA_ENTRADA,
+  TRANSFERENCIA_SAIDA,
+  DEVOLUCAO,
+  DEVOLUCAO_FORNECEDOR,
+}

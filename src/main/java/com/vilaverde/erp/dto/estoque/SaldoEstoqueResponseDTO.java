@@ -4,8 +4,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public record SaldoEstoqueResponseDTO(
-        UUID idProduto,
-        UUID idLoja,
-        BigDecimal quantidadeAtual
-) {
-}
+  UUID idProduto,
+  UUID idLoja,
+  BigDecimal quantidadeAtual
+) {}
