@@ -3,6 +3,7 @@ package com.vilaverde.erp.controller;
 import com.vilaverde.erp.dto.venda.VendaRequestDTO;
 import com.vilaverde.erp.dto.venda.VendaResponseDTO;
 import com.vilaverde.erp.service.VendaService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -18,6 +19,7 @@ public class VendaController {
 
   private final VendaService vendaService;
 
+  @Operation(operationId = "listarVendas")
   @GetMapping
   public ResponseEntity<List<VendaResponseDTO>> listar(
     @RequestParam(required = false) UUID idCliente,
@@ -27,11 +29,13 @@ public class VendaController {
     return ResponseEntity.ok(vendaService.listar(idCliente, idUsuario, idLoja));
   }
 
+  @Operation(operationId = "buscarVendaPorId")
   @GetMapping("/{id}")
   public ResponseEntity<VendaResponseDTO> buscarPorId(@PathVariable UUID id) {
     return ResponseEntity.ok(vendaService.buscarPorId(id));
   }
 
+  @Operation(operationId = "criarVenda")
   @PostMapping
   public ResponseEntity<VendaResponseDTO> criar(
     @Valid @RequestBody VendaRequestDTO dto
@@ -41,6 +45,7 @@ public class VendaController {
     );
   }
 
+  @Operation(operationId = "atualizarVenda")
   @PutMapping("/{id}")
   public ResponseEntity<VendaResponseDTO> atualizar(
     @PathVariable UUID id,
@@ -49,6 +54,7 @@ public class VendaController {
     return ResponseEntity.ok(vendaService.atualizar(id, dto));
   }
 
+  @Operation(operationId = "excluirVenda")
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> excluir(@PathVariable UUID id) {
     vendaService.excluir(id);

@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Node/Kubb ###
+node_modules/

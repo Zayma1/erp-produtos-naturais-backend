@@ -3,6 +3,7 @@ package com.vilaverde.erp.controller;
 import com.vilaverde.erp.dto.fornecedor.FornecedorRequestDTO;
 import com.vilaverde.erp.dto.fornecedor.FornecedorResponseDTO;
 import com.vilaverde.erp.service.FornecedorService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -18,11 +19,13 @@ public class FornecedorController {
 
   private final FornecedorService fornecedorService;
 
+  @Operation(operationId = "listarFornecedores")
   @GetMapping
   public ResponseEntity<List<FornecedorResponseDTO>> listar() {
     return ResponseEntity.ok(fornecedorService.listar());
   }
 
+  @Operation(operationId = "buscarFornecedorPorId")
   @GetMapping("/{id}")
   public ResponseEntity<FornecedorResponseDTO> buscarPorId(
     @PathVariable UUID id
@@ -30,6 +33,7 @@ public class FornecedorController {
     return ResponseEntity.ok(fornecedorService.buscarPorId(id));
   }
 
+  @Operation(operationId = "criarFornecedor")
   @PostMapping
   public ResponseEntity<FornecedorResponseDTO> criar(
     @Valid @RequestBody FornecedorRequestDTO dto
@@ -39,6 +43,7 @@ public class FornecedorController {
     );
   }
 
+  @Operation(operationId = "atualizarFornecedor")
   @PutMapping("/{id}")
   public ResponseEntity<FornecedorResponseDTO> atualizar(
     @PathVariable UUID id,
@@ -47,6 +52,7 @@ public class FornecedorController {
     return ResponseEntity.ok(fornecedorService.atualizar(id, dto));
   }
 
+  @Operation(operationId = "excluirFornecedor")
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> excluir(@PathVariable UUID id) {
     fornecedorService.excluir(id);

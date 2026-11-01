@@ -3,6 +3,7 @@ package com.vilaverde.erp.controller;
 import com.vilaverde.erp.dto.produtosku.ProdutoSkuRequestDTO;
 import com.vilaverde.erp.dto.produtosku.ProdutoSkuResponseDTO;
 import com.vilaverde.erp.service.ProdutoSkuService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -18,6 +19,7 @@ public class ProdutoSkuController {
 
   private final ProdutoSkuService produtoSkuService;
 
+  @Operation(operationId = "listarProdutosSku")
   @GetMapping
   public ResponseEntity<List<ProdutoSkuResponseDTO>> listar(
     @RequestParam(required = false) UUID idProduto,
@@ -26,6 +28,7 @@ public class ProdutoSkuController {
     return ResponseEntity.ok(produtoSkuService.listar(idProduto, idLoja));
   }
 
+  @Operation(operationId = "buscarProdutoSkuPorId")
   @GetMapping("/{id}")
   public ResponseEntity<ProdutoSkuResponseDTO> buscarPorId(
     @PathVariable UUID id
@@ -33,6 +36,7 @@ public class ProdutoSkuController {
     return ResponseEntity.ok(produtoSkuService.buscarPorId(id));
   }
 
+  @Operation(operationId = "criarProdutoSku")
   @PostMapping
   public ResponseEntity<ProdutoSkuResponseDTO> criar(
     @Valid @RequestBody ProdutoSkuRequestDTO dto
@@ -42,6 +46,7 @@ public class ProdutoSkuController {
     );
   }
 
+  @Operation(operationId = "atualizarProdutoSku")
   @PutMapping("/{id}")
   public ResponseEntity<ProdutoSkuResponseDTO> atualizar(
     @PathVariable UUID id,
@@ -50,6 +55,7 @@ public class ProdutoSkuController {
     return ResponseEntity.ok(produtoSkuService.atualizar(id, dto));
   }
 
+  @Operation(operationId = "excluirProdutoSku")
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> excluir(@PathVariable UUID id) {
     produtoSkuService.excluir(id);

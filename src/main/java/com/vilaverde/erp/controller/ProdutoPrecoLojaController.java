@@ -2,6 +2,7 @@ package com.vilaverde.erp.controller;
 
 import com.vilaverde.erp.dto.produto.*;
 import com.vilaverde.erp.service.ProdutoPrecoLojaService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ public class ProdutoPrecoLojaController {
 
   private final ProdutoPrecoLojaService service;
 
+  @Operation(operationId = "listarPrecosProdutoLoja")
   @GetMapping
   public List<ProdutoPrecoLojaResponseDTO> listar(
     @RequestParam(required = false) UUID idProduto,
@@ -23,11 +25,13 @@ public class ProdutoPrecoLojaController {
     return service.listar(idProduto, idLoja);
   }
 
+  @Operation(operationId = "buscarPrecoProdutoLojaPorId")
   @GetMapping("/{id}")
   public ProdutoPrecoLojaResponseDTO buscar(@PathVariable UUID id) {
     return service.buscar(id);
   }
 
+  @Operation(operationId = "criarPrecoProdutoLoja")
   @PostMapping
   public ResponseEntity<ProdutoPrecoLojaResponseDTO> criar(
     @Valid @RequestBody ProdutoPrecoLojaRequestDTO d
@@ -35,6 +39,7 @@ public class ProdutoPrecoLojaController {
     return ResponseEntity.status(HttpStatus.CREATED).body(service.criar(d));
   }
 
+  @Operation(operationId = "atualizarPrecoProdutoLoja")
   @PutMapping("/{id}")
   public ProdutoPrecoLojaResponseDTO atualizar(
     @PathVariable UUID id,
@@ -43,6 +48,7 @@ public class ProdutoPrecoLojaController {
     return service.atualizar(id, d);
   }
 
+  @Operation(operationId = "excluirPrecoProdutoLoja")
   @DeleteMapping("/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void excluir(@PathVariable UUID id) {

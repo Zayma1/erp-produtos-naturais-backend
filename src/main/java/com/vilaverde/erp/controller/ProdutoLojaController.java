@@ -3,6 +3,7 @@ package com.vilaverde.erp.controller;
 import com.vilaverde.erp.dto.produtoloja.ProdutoLojaRequestDTO;
 import com.vilaverde.erp.dto.produtoloja.ProdutoLojaResponseDTO;
 import com.vilaverde.erp.service.ProdutoLojaService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -18,6 +19,7 @@ public class ProdutoLojaController {
 
   private final ProdutoLojaService produtoLojaService;
 
+  @Operation(operationId = "listarProdutosLoja")
   @GetMapping
   public ResponseEntity<List<ProdutoLojaResponseDTO>> listar(
     @RequestParam(required = false) UUID idProduto,
@@ -26,6 +28,7 @@ public class ProdutoLojaController {
     return ResponseEntity.ok(produtoLojaService.listar(idProduto, idLoja));
   }
 
+  @Operation(operationId = "buscarProdutoLojaPorId")
   @GetMapping("/{id}")
   public ResponseEntity<ProdutoLojaResponseDTO> buscarPorId(
     @PathVariable UUID id
@@ -33,6 +36,7 @@ public class ProdutoLojaController {
     return ResponseEntity.ok(produtoLojaService.buscarPorId(id));
   }
 
+  @Operation(operationId = "criarProdutoLoja")
   @PostMapping
   public ResponseEntity<ProdutoLojaResponseDTO> criar(
     @Valid @RequestBody ProdutoLojaRequestDTO dto
@@ -42,6 +46,7 @@ public class ProdutoLojaController {
     );
   }
 
+  @Operation(operationId = "excluirProdutoLoja")
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> excluir(@PathVariable UUID id) {
     produtoLojaService.excluir(id);

@@ -2,6 +2,7 @@ package com.vilaverde.erp.controller;
 
 import com.vilaverde.erp.dto.recebimento.*;
 import com.vilaverde.erp.service.RecebimentoCompraService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
@@ -15,16 +16,19 @@ public class RecebimentoCompraController {
 
   private final RecebimentoCompraService service;
 
+  @Operation(operationId = "listarRecebimentosCompra")
   @GetMapping
   public List<RecebimentoCompraResponseDTO> listar() {
     return service.listar();
   }
 
+  @Operation(operationId = "buscarRecebimentoCompraPorId")
   @GetMapping("/{id}")
   public RecebimentoCompraResponseDTO buscar(@PathVariable UUID id) {
     return service.buscar(id);
   }
 
+  @Operation(operationId = "criarRecebimentoCompra")
   @PostMapping
   public ResponseEntity<RecebimentoCompraResponseDTO> criar(
     @Valid @RequestBody RecebimentoCompraRequestDTO d
@@ -32,6 +36,7 @@ public class RecebimentoCompraController {
     return ResponseEntity.status(HttpStatus.CREATED).body(service.criar(d));
   }
 
+  @Operation(operationId = "atualizarRecebimentoCompra")
   @PutMapping("/{id}")
   public RecebimentoCompraResponseDTO atualizar(
     @PathVariable UUID id,
@@ -40,6 +45,7 @@ public class RecebimentoCompraController {
     return service.atualizar(id, d);
   }
 
+  @Operation(operationId = "excluirRecebimentoCompra")
   @DeleteMapping("/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void excluir(@PathVariable UUID id) {

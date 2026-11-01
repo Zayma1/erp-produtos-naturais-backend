@@ -3,6 +3,7 @@ package com.vilaverde.erp.controller;
 import com.vilaverde.erp.dto.categoria.CategoriaRequestDTO;
 import com.vilaverde.erp.dto.categoria.CategoriaResponseDTO;
 import com.vilaverde.erp.service.CategoriaService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -18,11 +19,13 @@ public class CategoriaController {
 
   private final CategoriaService categoriaService;
 
+  @Operation(operationId = "listarCategorias")
   @GetMapping
   public ResponseEntity<List<CategoriaResponseDTO>> listar() {
     return ResponseEntity.ok(categoriaService.listar());
   }
 
+  @Operation(operationId = "buscarCategoriaPorId")
   @GetMapping("/{id}")
   public ResponseEntity<CategoriaResponseDTO> buscarPorId(
     @PathVariable UUID id
@@ -30,6 +33,7 @@ public class CategoriaController {
     return ResponseEntity.ok(categoriaService.buscarPorId(id));
   }
 
+  @Operation(operationId = "criarCategoria")
   @PostMapping
   public ResponseEntity<CategoriaResponseDTO> criar(
     @Valid @RequestBody CategoriaRequestDTO dto
@@ -39,6 +43,7 @@ public class CategoriaController {
     );
   }
 
+  @Operation(operationId = "atualizarCategoria")
   @PutMapping("/{id}")
   public ResponseEntity<CategoriaResponseDTO> atualizar(
     @PathVariable UUID id,
@@ -47,6 +52,7 @@ public class CategoriaController {
     return ResponseEntity.ok(categoriaService.atualizar(id, dto));
   }
 
+  @Operation(operationId = "excluirCategoria")
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> excluir(@PathVariable UUID id) {
     categoriaService.excluir(id);

@@ -1,0 +1,18 @@
+{
+  "name": "erp-produtos-naturais-sdk",
+  "private": true,
+  "scripts": {
+    "sdk:generate": "kubb generate",
+    "sdk:watch": "kubb generate --watch"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@kubb/plugin-axios": "^5.11.0",
+    "@kubb/plugin-react-query": "^5.8.0",
+    "@kubb/plugin-ts": "^5.4.0",
+    "kubb": "^5.15.3",
+    "typescript": "^5.9.3"
+  }
+}

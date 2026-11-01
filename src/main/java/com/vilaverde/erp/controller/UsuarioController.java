@@ -3,6 +3,7 @@ package com.vilaverde.erp.controller;
 import com.vilaverde.erp.dto.usuario.UsuarioRequestDTO;
 import com.vilaverde.erp.dto.usuario.UsuarioResponseDTO;
 import com.vilaverde.erp.service.UsuarioService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -18,16 +19,19 @@ public class UsuarioController {
 
   private final UsuarioService usuarioService;
 
+  @Operation(operationId = "listarUsuarios")
   @GetMapping
   public ResponseEntity<List<UsuarioResponseDTO>> listar() {
     return ResponseEntity.ok(usuarioService.listar());
   }
 
+  @Operation(operationId = "buscarUsuarioPorId")
   @GetMapping("/{id}")
   public ResponseEntity<UsuarioResponseDTO> buscarPorId(@PathVariable UUID id) {
     return ResponseEntity.ok(usuarioService.buscarPorId(id));
   }
 
+  @Operation(operationId = "criarUsuario")
   @PostMapping
   public ResponseEntity<UsuarioResponseDTO> criar(
     @Valid @RequestBody UsuarioRequestDTO dto
@@ -37,6 +41,7 @@ public class UsuarioController {
     );
   }
 
+  @Operation(operationId = "atualizarUsuario")
   @PutMapping("/{id}")
   public ResponseEntity<UsuarioResponseDTO> atualizar(
     @PathVariable UUID id,
@@ -45,6 +50,7 @@ public class UsuarioController {
     return ResponseEntity.ok(usuarioService.atualizar(id, dto));
   }
 
+  @Operation(operationId = "excluirUsuario")
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> excluir(@PathVariable UUID id) {
     usuarioService.excluir(id);
