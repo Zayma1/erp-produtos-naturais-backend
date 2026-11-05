@@ -1,6 +1,8 @@
 package com.vilaverde.erp.dto.usuario;
 
 import com.vilaverde.erp.entity.Usuario;
+import com.vilaverde.erp.entity.enums.CargoUsuario;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -8,7 +10,7 @@ public record UsuarioResponseDTO(
   UUID id,
   String nome,
   String email,
-  String cargo,
+  CargoUsuario cargo,
   com.vilaverde.erp.entity.enums.StatusCadastro status,
   OffsetDateTime criadoEm
 ) {

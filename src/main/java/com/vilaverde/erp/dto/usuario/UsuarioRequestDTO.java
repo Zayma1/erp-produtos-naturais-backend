@@ -1,5 +1,6 @@
 package com.vilaverde.erp.dto.usuario;
 
+import com.vilaverde.erp.entity.enums.CargoUsuario;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
