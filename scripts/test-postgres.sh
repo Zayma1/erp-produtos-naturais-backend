@@ -4,7 +4,12 @@ cd -- "$(dirname -- "$0")/.."
 name="vila-receiving-test-$RANDOM-$$"
 trap 'docker rm -f "$name" >/dev/null 2>&1 || true' EXIT
 docker run -d --rm --name "$name" -p 127.0.0.1::5432 -e POSTGRES_DB=receiving_test -e POSTGRES_USER=stage7 -e POSTGRES_PASSWORD=local-stage7-only postgres:16 >/dev/null
-until docker exec "$name" pg_isready -U stage7 -d receiving_test >/dev/null 2>&1; do sleep 1; done
+ready=0
+for attempt in {1..60}; do
+  if docker exec "$name" pg_isready -h 127.0.0.1 -U stage7 -d receiving_test >/dev/null 2>&1; then ready=1; break; fi
+  sleep 1
+done
+[[ "$ready" == 1 ]] || { echo 'PostgreSQL did not start' >&2; exit 1; }
 port=$(docker inspect --format '{{(index (index .NetworkSettings.Ports "5432/tcp") 0).HostPort}}' "$name")
 # Validate the actual backup/schema/data preflight on an isolated legacy database.
 docker exec "$name" createdb -U stage7 legacy_preflight

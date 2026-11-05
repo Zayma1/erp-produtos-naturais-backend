@@ -172,6 +172,7 @@ class ReceivingTests {
     String base="{\"idCompra\":\""+compra+"\",\"idUsuario\":\""+usuario+"\",\"status\":\"RASCUNHO\",\"itens\":[{\"idItemCompra\":\""+item+"\",\"idProduto\":\""+produto+"\",\"quantidade\":%s}]}";
     for(String q:List.of("0","-1","0.0001","100000000000"))
       mvc.perform(post("/api/recebimentos-compras").header("Idempotency-Key",UUID.randomUUID()).contentType("application/json").content(base.formatted(q))).andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value(400));
+    mvc.perform(post("/api/recebimentos-compras").header("Idempotency-Key",UUID.randomUUID()).contentType("application/json").content(base.formatted("1").replaceFirst("\\[\\{.*\\}\\]", "[null]"))).andExpect(status().isBadRequest());
     mvc.perform(post("/api/recebimentos-compras").contentType("application/json").content(base.formatted("1"))).andExpect(status().isBadRequest());
     mvc.perform(get("/api/recebimentos-compras/"+UUID.randomUUID())).andExpect(status().isNotFound());
     var a=draft("1");

@@ -15,5 +15,5 @@ public record RecebimentoCompraRequestDTO(
   OffsetDateTime dataRecebimento,
   StatusDocumento status,
   @jakarta.validation.constraints.Size(max=255) String observacao,
-  @NotEmpty @Valid List<ItemRecebimentoRequestDTO> itens
+  @NotEmpty List<@NotNull @Valid ItemRecebimentoRequestDTO> itens
 ) {}
