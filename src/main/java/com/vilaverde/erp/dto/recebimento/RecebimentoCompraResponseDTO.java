@@ -11,16 +11,19 @@ public record RecebimentoCompraResponseDTO(
   UUID idUsuario,
   StatusDocumento status,
   OffsetDateTime dataRecebimento,
-  String observacao
+  String observacao,
+  Integer versao,
+  OffsetDateTime concluidoEm,
+  java.util.List<ItemRecebimentoResponseDTO> itens
 ) {
-  public static RecebimentoCompraResponseDTO fromEntity(RecebimentoCompra e) {
+  public static RecebimentoCompraResponseDTO fromEntity(RecebimentoCompra e, java.util.List<ItemRecebimentoResponseDTO> itens) {
     return new RecebimentoCompraResponseDTO(
       e.getId(),
       e.getCompra().getId(),
       e.getUsuario() == null ? null : e.getUsuario().getId(),
       e.getStatus(),
       e.getDataRecebimento(),
-      e.getObservacao()
+      e.getObservacao(), e.getVersao(), e.getConcluidoEm(), itens
     );
   }
 }

@@ -18,6 +18,13 @@ public class RecebimentoCompra {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
+  @Version
+  @Column(nullable = false)
+  private Integer versao;
+
+  @Column(name = "concluido_em")
+  private OffsetDateTime concluidoEm;
+
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "id_compra", nullable = false)
   private Compra compra;

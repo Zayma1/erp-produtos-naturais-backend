@@ -18,7 +18,8 @@ public record MovimentacaoResponseDTO(
   UUID idVenda,
   UUID idCompra,
   UUID idTransferencia,
-  UUID idAjusteEstoque
+  UUID idAjusteEstoque,
+  UUID idRecebimentoCompra
 ) {
   public static MovimentacaoResponseDTO fromEntity(MovimentacaoEstoque e) {
     return new MovimentacaoResponseDTO(
@@ -33,7 +34,8 @@ public record MovimentacaoResponseDTO(
       e.getVenda() == null ? null : e.getVenda().getId(),
       e.getCompra() == null ? null : e.getCompra().getId(),
       e.getTransferencia() == null ? null : e.getTransferencia().getId(),
-      e.getAjusteEstoque() == null ? null : e.getAjusteEstoque().getId()
+      e.getAjusteEstoque() == null ? null : e.getAjusteEstoque().getId(),
+      e.getItemRecebimentoCompra() == null ? null : e.getItemRecebimentoCompra().getRecebimentoCompra().getId()
     );
   }
 }

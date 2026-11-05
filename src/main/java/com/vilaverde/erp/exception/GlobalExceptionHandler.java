@@ -62,6 +62,24 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
   }
 
+  @ExceptionHandler(InvalidInputException.class)
+  public ResponseEntity<ApiError> handleInvalidInputException(InvalidInputException ex) {
+    return ResponseEntity.status(400).body(new ApiError(400, "Dados inválidos", ex.getMessage()));
+  }
+
+  @ExceptionHandler(ConflictException.class)
+  public ResponseEntity<ApiError> handleConflictException(ConflictException ex) {
+    return ResponseEntity.status(409).body(new ApiError(409, "Conflito", ex.getMessage()));
+  }
+
+  @ExceptionHandler({org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
+    org.springframework.web.bind.MissingRequestHeaderException.class,
+    org.springframework.web.bind.MissingServletRequestParameterException.class,
+    org.springframework.http.converter.HttpMessageNotReadableException.class})
+  public ResponseEntity<ApiError> malformed(Exception ex) {
+    return ResponseEntity.badRequest().body(new ApiError(400, "Dados inválidos", "Parâmetro, cabeçalho ou JSON inválido"));
+  }
+
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiError> handleGeneric(Exception ex) {
     ApiError error = new ApiError(

@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CompraService {
 
   private final CompraRepository repository;
+  private final RecebimentoCompraRepository recebimentos;
   private final ItemCompraRepository itemRepository;
   private final FornecedorRepository fornecedorRepository;
   private final LojaRepository lojaRepository;
@@ -52,10 +53,11 @@ public class CompraService {
   @Transactional
   public CompraResponseDTO atualizar(UUID id, CompraRequestDTO d) {
     Compra e = repository
-      .findById(id)
+      .lockById(id)
       .orElseThrow(() ->
         new ResourceNotFoundException("Compra não encontrada")
       );
+    if (recebimentos.existsByCompraId(id)) throw new ConflictException("Compra possui recebimentos; exclua os rascunhos antes de editar");
     if (e.getStatus() != StatusCompra.RASCUNHO) throw new BusinessException(
       "Somente compras em rascunho podem ser alteradas"
     );
@@ -69,10 +71,11 @@ public class CompraService {
   @Transactional
   public void excluir(UUID id) {
     Compra e = repository
-      .findById(id)
+      .lockById(id)
       .orElseThrow(() ->
         new ResourceNotFoundException("Compra não encontrada")
       );
+    if (recebimentos.existsByCompraId(id)) throw new ConflictException("Compra possui recebimentos; exclua os rascunhos antes de editar");
     if (e.getStatus() != StatusCompra.RASCUNHO) throw new BusinessException(
       "Somente compras em rascunho podem ser excluídas"
     );
