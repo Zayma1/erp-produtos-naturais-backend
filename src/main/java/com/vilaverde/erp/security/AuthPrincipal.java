@@ -17,7 +17,7 @@ public record AuthPrincipal(UUID id, String email, String nome, CargoUsuario car
   @Override public boolean isEnabled() { return enabled; }
   public Set<String> permissions() {
     var p = new HashSet<>(Set.of("catalog.read","customers.read","customers.write","sales.read","sales.create","inventory.read","overview.read"));
-    if (cargo != CargoUsuario.FUNC) p.addAll(Set.of("catalog.write","suppliers.read","suppliers.write","purchases.read","purchases.write"));
+    if (cargo != CargoUsuario.FUNC) p.addAll(Set.of("catalog.write","suppliers.read","suppliers.write","purchases.read","purchases.write","transfers.read","transfers.write"));
     if (cargo == CargoUsuario.ADMIN) p.addAll(Set.of("users.manage","stores.manage"));
     return Set.copyOf(p);
   }

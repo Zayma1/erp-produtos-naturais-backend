@@ -20,6 +20,10 @@ public record MovimentacaoResponseDTO(
   UUID idCompra,
   UUID idTransferencia,
   UUID idAjusteEstoque,
+  UUID idDevolucaoCliente,
+  UUID idItemDevolucaoCliente,
+  UUID idDevolucaoFornecedor,
+  UUID idItemDevolucaoFornecedor,
   UUID idRecebimentoCompra
 ) {
   public static MovimentacaoResponseDTO fromEntity(MovimentacaoEstoque e) {
@@ -37,6 +41,10 @@ public record MovimentacaoResponseDTO(
       e.getCompra() == null ? null : e.getCompra().getId(),
       e.getTransferencia() == null ? null : e.getTransferencia().getId(),
       e.getAjusteEstoque() == null ? null : e.getAjusteEstoque().getId(),
+      e.getDevolucaoCliente()==null?null:e.getDevolucaoCliente().getId(),
+      e.getItemDevolucaoCliente()==null?null:e.getItemDevolucaoCliente().getId(),
+      e.getDevolucaoFornecedor()==null?null:e.getDevolucaoFornecedor().getId(),
+      e.getItemDevolucaoFornecedor()==null?null:e.getItemDevolucaoFornecedor().getId(),
       e.getItemRecebimentoCompra() == null ? null : e.getItemRecebimentoCompra().getRecebimentoCompra().getId()
     );
   }

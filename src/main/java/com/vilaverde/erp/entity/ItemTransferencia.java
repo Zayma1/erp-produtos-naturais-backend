@@ -13,6 +13,9 @@ import lombok.*;
 @AllArgsConstructor
 public class ItemTransferencia {
 
+  @Column(name="unidade_sigla_snapshot", length=10)
+  private String unidadeSiglaSnapshot;
+
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;

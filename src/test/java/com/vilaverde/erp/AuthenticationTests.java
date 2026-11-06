@@ -44,6 +44,7 @@ class AuthenticationTests {
       var r=HttpRequest.newBuilder(URI.create("http://127.0.0.1:"+port+path)).header("Accept","application/json");
       if(token) {if(csrf==null)renew();r.header("X-CSRF-TOKEN",csrf);}
       if(body!=null)r.header("Content-Type","application/json");
+      if(method.equals("POST") && path.equals("/api/vendas"))r.header("Idempotency-Key",UUID.randomUUID().toString());
       return http.send(r.method(method,body==null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body))).build(),HttpResponse.BodyHandlers.ofString());
     }
     void renew() throws Exception {csrf=json.readTree(call("GET","/api/auth/csrf",null,false).body()).get("token").asText();}
@@ -144,8 +145,9 @@ class AuthenticationTests {
     var stores=json.readTree(m.call("GET","/api/lojas",null,false).body());assertEquals(1,stores.size());assertEquals(store.toString(),stores.get(0).get("id").asText());
     assertEquals("[]",m.call("GET","/api/compras",null,false).body());assertEquals(404,m.call("GET","/api/compras/"+purchase,null,false).statusCode());
     assertEquals(404,m.call("GET","/api/lojas/"+other,null,false).statusCode());
-    assertEquals(403,e.call("PUT","/api/vendas/"+UUID.randomUUID(),Map.of(),true).statusCode());
-    assertEquals(403,m.call("POST","/api/ajustes-estoque",Map.of(),true).statusCode());
+    assertEquals(400,e.call("PUT","/api/vendas/"+UUID.randomUUID(),Map.of(),true).statusCode());
+    assertEquals(400,m.call("POST","/api/ajustes-estoque",Map.of(),true).statusCode());
+    assertEquals(403,e.call("POST","/api/ajustes-estoque",Map.of(),true).statusCode());
     assertEquals(404,e.call("GET","/api/estoques/saldo?idProduto="+UUID.randomUUID()+"&idLoja="+other,null,false).statusCode());
   }
 
@@ -178,6 +180,16 @@ class AuthenticationTests {
     assertEquals(404,m.call("DELETE","/api/recebimentos-compras/"+receipt+"?versao=0",null,true).statusCode());
     var own=Map.of("idCliente",customer,"idLoja",store,"itens",List.of(Map.of("idProduto",product,"quantidade",1,"precoUnitario",1)));
     var created=e.call("POST","/api/vendas",own,true);assertEquals(201,created.statusCode(),created.body());assertEquals(employee.toString(),json.readTree(created.body()).get("idUsuario").asText());
+    var saved=json.readTree(created.body());String saleId=saved.get("id").asText();
+    assertEquals(404,e.call("POST","/api/vendas/"+sale+"/concluir",Map.of("versao",0),true).statusCode());
+    assertEquals(404,e.call("POST","/api/vendas/"+sale+"/cancelar",Map.of("versao",0,"motivo","Teste"),true).statusCode());
+    var move=new HashMap<String,Object>(own);move.put("versao",0);move.put("idLoja",other);
+    assertEquals(404,e.call("PUT","/api/vendas/"+saleId,move,true).statusCode());
+    assertEquals(403,e.call("PUT","/api/vendas/"+saleId,move,false).statusCode());
+    assertEquals(409,e.call("POST","/api/vendas/"+saleId+"/concluir",Map.of("versao",0),true).statusCode());
+    assertEquals(200,e.call("POST","/api/vendas/"+saleId+"/cancelar",Map.of("versao",0,"motivo","Teste"),true).statusCode());
+    assertEquals(403,e.call("DELETE","/api/vendas/"+saleId,null,true).statusCode());
+
   }
   @Test void logoutAndPasswordResetRevokeAllSessions() throws Exception {
     var a=authenticated("admin@example.test",admin);var second=new Browser();assertEquals(200,second.login("admin@example.test",permanent).statusCode());

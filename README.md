@@ -65,3 +65,108 @@ O terminal solicita nome/e-mail e senha temporária sem eco. A alternativa inter
 `bash scripts/test-postgres.sh` cria PostgreSQL descartável, executa preflight real e testa migrações, colisões, invalidação legada, login/hash/CSRF, rotação, expirações, revogações, perfis/lojas, replay/identidade, atribuição e concorrência do último administrador, além da regressão de recebimento. `IntegrationBootstrapTests` só existe no classpath de teste, exige `CATALOG_DISPOSABLE=1`, datasource loopback e senha aleatória fornecida pelo runner; não cria endpoint nem faz parte do JAR executável. O SDK completo é regenerado do contrato `openapi-stage8.json` com o lock Kubb existente.
 
 A implantação deve ser coordenada com o frontend. Esta implementação não executa migrações em bancos compartilhados, publicação ou merge de release.
+
+### Vendas (V4)
+
+`POST /api/vendas` exige `Idempotency-Key` UUID, cliente, loja e itens. A identidade
+pertence à sessão; `idUsuario` opcional só pode identificar a própria conta. Chave,
+hash canônico e venda são persistidos na mesma transação, sem expiração automática.
+Repetição concorrente retorna a mesma identidade; outro conteúdo gera 409 e outra
+conta recebe 404. A leitura do replay também valida o acesso atual à loja da venda.
+
+`PUT /api/vendas/{id}` exige `versao` e venda aberta. IDs de itens existentes devem
+ser mantidos; omissões removem itens e IDs novos devem ficar ausentes. Mudar de loja
+exige acesso à origem e ao destino. Preços são informados explicitamente; subtotal
+arredonda a soma bruta (HALF_UP), descontos são monetários e totais dos itens são
+arredondados separadamente. Observação, versão, totais e unidades históricas retornam
+nas consultas. Operações de gravação não aceitam `status` no payload.
+
+`POST /api/vendas/{id}/concluir` recebe `{ "versao": 0 }`. Bloqueia a venda e os
+saldos em ordem de produto, agrega produtos repetidos, verifica todos os saldos e
+aplica débitos atômicos. Cada item origina uma `SAIDA_VENDA` positiva com ator e
+horário do servidor. Repetir uma conclusão operacional retorna a venda existente.
+A confirmação registra a venda e a movimentação, **sem registrar pagamento**.
+
+`POST /api/vendas/{id}/cancelar` recebe versão e `motivo` não vazio; só permite venda
+aberta, preserva o histórico e não altera estoque. Repetir retorna o cancelamento
+existente. Concluídas/canceladas são imutáveis; DELETE permanece proibido.
+Inválidos retornam 400, registros ausentes/fora do escopo 404, versões/transições/
+estoque em conflito 409. ADMIN/GER/FUNC mantêm sessão, CSRF e escopo de lojas.
+
+Antes de aplicar V4 a dados existentes, execute `scripts/sales-preflight.sql` em
+modo de leitura e guarde o relatório de reconciliação. Dados monetários inválidos
+bloqueiam a migração; IDs, referências e snapshots válidos são preservados.
+Concluídas/canceladas preexistentes recebem `legado=true`, sem inventar atores,
+horários ou movimentos. Permanecem consultáveis e nunca são reexecutadas. O relatório
+identifica conclusões sem movimento verificável para reconciliação humana.
+
+`bash scripts/test-postgres.sh` usa somente bancos PostgreSQL descartáveis e cobre
+vendas, migrações V1–V4, autenticação e recebimento, incluindo concorrência e rollback.
+
+### Transferências de estoque — etapa 10 (V5)
+
+Branch `stage10-transfers`, empilhada sobre `stage9-sales` (`65d6585`). V1–V4 permanecem inalteradas. V5 preserva todos os documentos anteriores como `legado=true`, inclusive rascunhos: somente consulta até reconciliação humana, sem inferir saldos, snapshots ou reproduzir conclusão.
+
+`/api/transferencias-estoque` exige sessão ADMIN/GER e acesso às **duas lojas**. GET aceita `idLojaOrigem`, `idLojaDestino`, `status`; GET `/{id}` retorna itens/IDs, unidade salva, versão e auditoria. POST exige `Idempotency-Key` UUID e cria `RASCUNHO`; PUT `/{id}` substitui o rascunho com `versao`, mantendo IDs informados e removendo omitidos. Campos de status são rejeitados. Operador vem da sessão; eventual `idUsuario` só pode apontar para ela. Criação registra chave, hash canônico e ator na mesma transação; replay revalida ator e acesso às duas lojas. Alterar lojas exige acesso aos pares antigo e novo.
+
+POST `/{id}/concluir` recebe `{ "versao": N }`: move imediatamente estoque da origem ao destino, sem reserva, trânsito ou recebimento posterior. Bloqueia documento e pares de saldo em ordem produto→loja; insere saldos ausentes a zero dentro da transação e valida todos os itens e o limite numeric(14,3) antes dos efeitos. Movimentos positivos `TRANSFERENCIA_SAIDA`/`TRANSFERENCIA_ENTRADA` ligam documento, item e confirmador; usam horário do servidor. Unique por item/direção e replay da confirmação impedem duplicação. A data comercial permanece separada.
+
+POST `/{id}/cancelar` recebe versão e `motivo` obrigatório; apenas rascunhos, sem efeitos no estoque. Repetição retorna o cancelamento existente. Confirmados são imutáveis; DELETE é proibido. Erros: 400 entrada/precisão/produto duplicado/lojas iguais; 404 ausente ou fora do escopo; 409 versão/estado/falta/overflow. Falhas revertem saldos novos e existentes, movimentos e estado do documento.
+
+`bash scripts/test-postgres.sh` cobre transferências, concorrência com recebimentos/vendas e direções opostas, rollback, escopo, CSRF, auditoria, identidade de itens, idempotência, migração V4→V5 e regressões. O contrato autenticado está em `openapi-stage10.json`; gere com `OPENAPI_FILE=./openapi-stage10.json npm run sdk:generate` usando o lock existente. Não executar migração compartilhada, reparo histórico ou deploy como parte desta etapa. Ajustes e reversões continuam adiados.
+
+Etapa 11 (`stage11-adjustments`): ajustes quantitativos em `/api/ajustes-estoque`.
+Criação exige UUID `Idempotency-Key`; edição, conclusão e cancelamento exigem
+`versao`. ADMIN/GER operam apenas lojas autorizadas. Conclusão bloqueia saldos,
+valida o documento inteiro e grava movimentos e snapshots na mesma transação.
+V6 preserva registros anteriores como históricos somente leitura e interrompe
+migração com consulta de reconciliação para itens incompatíveis ou duplicados.
+Não existe contagem física, estorno ou permissão para estoque negativo.
+
+## Stage 12 — customer and supplier returns
+
+`stage12-returns` is based on `bdd39f3` and preserves stages 9–11. Flyway V7
+adds lifecycle/version audit, actor-owned creation idempotency, item snapshots
+and unique movement references. V1–V6 are unchanged. Both return resources
+support collection/detail GET, POST draft with UUID Idempotency-Key, PUT with
+version, and explicit POST conclude/cancel. Cancellation requires a reason;
+DELETE is forbidden. ADMIN/GER are limited to the source document's store.
+
+Customer returns require a completed non-legacy sale. Mixed stock dispositions
+are allowed once per source item/disposition, both consuming the sold allowance.
+Only restockable quantities create DEVOLUCAO entries. Non-restockable rows
+require an observation. Supplier returns require a partially/fully received
+purchase and both received allowance and available stock; they create
+DEVOLUCAO_FORNECEDOR exits. Neither workflow changes source totals/status or
+cumulative receipt quantities, and neither records refunds/credits/payments.
+
+Confirmation locks source, return, then stock in product/store order, rechecks
+confirmed totals, validates the whole document and applies all effects in one
+transaction. Replay has no duplicate effects. Drafts reserve no quantity.
+Confirmed/cancelled records are immutable. Existing returns are read-only
+legacy records and block new returns against their source until reviewed
+reconciliation establishes allowance; no effects are inferred or replayed.
+SQL read functions expose confirmed-return totals and unresolved legacy flags.
+Sale units use saved snapshots; purchase units are labeled as the unit at
+return creation, never as historical purchase units.
+
+Run `bash scripts/test-postgres.sh` with Java 21 and Docker. ReturnsTests cover
+partial/multiple/mixed returns, allowance, stock, identity, version, authorization,
+idempotency, concurrency with other stock writers, overflow and rollback.
+MigrationTests cover V6→V7 quarantine and reconnect persistence. Export the
+full OpenAPI with ReturnsTests.exportOpenApi, then generate the SDK using
+`OPENAPI_FILE=openapi-stage12.json npm run sdk:generate`.
+
+Stage 12 was merged from `stage12-returns` into `novaVersao` on 2026-11-06,
+at the user's request, preserving the history of stages 9–11. The backend
+`main` branch remains unchanged, and the source branch is retained. The validated
+runtime commit is `c87fe72a66ca2fe8aaf14bead7101c0e95e27267`:
+[PostgreSQL CI passed](https://github.com/Zayma1/erp-produtos-naturais-backend/actions/runs/42284077339),
+75 tests recorded (74 executed, one integration-only bootstrap skipped).
+The integration changes documentation around that tested code and triggers the
+normal destination-branch checks; it does not perform a manual deployment or
+shared-database migration.
+
+Refunds, supplier credits,
+fiscal documents, exchanges, cross-store returns, quarantine stock, reversal,
+time-window policies and dependency upgrades are deferred.

@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public record ItemAjusteRequestDTO(
+  UUID id,
   @NotNull UUID idProduto,
   @NotNull TipoMovimentacao tipo,
   @NotNull @DecimalMin("0.001") BigDecimal quantidade,

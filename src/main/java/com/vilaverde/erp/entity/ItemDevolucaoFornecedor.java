@@ -13,6 +13,9 @@ import lombok.*;
 @AllArgsConstructor
 public class ItemDevolucaoFornecedor {
 
+  @Column(name="unidade_sigla_snapshot",length=10) private String unidadeSiglaSnapshot;
+  @Column(name="unidade_origem") private String unidadeOrigem;
+  @Column(name="nome_produto_snapshot") private String nomeProdutoSnapshot;
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
