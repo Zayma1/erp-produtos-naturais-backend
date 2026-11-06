@@ -15,7 +15,7 @@ ALTER TABLE usuario ADD COLUMN revisado boolean NOT NULL DEFAULT false;
 ALTER TABLE usuario ADD COLUMN auth_version bigint NOT NULL DEFAULT 0;
 CREATE UNIQUE INDEX usuario_normalized_email ON usuario(lower(btrim(email)));
 CREATE TABLE usuario_loja(id_usuario uuid NOT NULL REFERENCES usuario(id), id_loja uuid NOT NULL REFERENCES loja(id), PRIMARY KEY(id_usuario,id_loja));
-CREATE TABLE auth_attempt(email varchar(254) PRIMARY KEY, started_at timestamp NOT NULL, failures integer NOT NULL);
+CREATE TABLE auth_attempt(email varchar(254) PRIMARY KEY, started_at timestamp with time zone NOT NULL, failures integer NOT NULL);
 CREATE TABLE spring_session (
  primary_id char(36) PRIMARY KEY, session_id char(36) NOT NULL, creation_time bigint NOT NULL,
  last_access_time bigint NOT NULL, max_inactive_interval integer NOT NULL, expiry_time bigint NOT NULL, principal_name varchar(255)
