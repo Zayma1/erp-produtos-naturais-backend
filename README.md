@@ -114,3 +114,11 @@ POST `/{id}/concluir` recebe `{ "versao": N }`: move imediatamente estoque da or
 POST `/{id}/cancelar` recebe versão e `motivo` obrigatório; apenas rascunhos, sem efeitos no estoque. Repetição retorna o cancelamento existente. Confirmados são imutáveis; DELETE é proibido. Erros: 400 entrada/precisão/produto duplicado/lojas iguais; 404 ausente ou fora do escopo; 409 versão/estado/falta/overflow. Falhas revertem saldos novos e existentes, movimentos e estado do documento.
 
 `bash scripts/test-postgres.sh` cobre transferências, concorrência com recebimentos/vendas e direções opostas, rollback, escopo, CSRF, auditoria, identidade de itens, idempotência, migração V4→V5 e regressões. O contrato autenticado está em `openapi-stage10.json`; gere com `OPENAPI_FILE=./openapi-stage10.json npm run sdk:generate` usando o lock existente. Não executar migração compartilhada, reparo histórico ou deploy como parte desta etapa. Ajustes e reversões continuam adiados.
+
+Etapa 11 (`stage11-adjustments`): ajustes quantitativos em `/api/ajustes-estoque`.
+Criação exige UUID `Idempotency-Key`; edição, conclusão e cancelamento exigem
+`versao`. ADMIN/GER operam apenas lojas autorizadas. Conclusão bloqueia saldos,
+valida o documento inteiro e grava movimentos e snapshots na mesma transação.
+V6 preserva registros anteriores como históricos somente leitura e interrompe
+migração com consulta de reconciliação para itens incompatíveis ou duplicados.
+Não existe contagem física, estorno ou permissão para estoque negativo.

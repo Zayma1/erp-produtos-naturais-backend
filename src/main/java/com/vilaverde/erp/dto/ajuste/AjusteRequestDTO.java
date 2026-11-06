@@ -9,8 +9,9 @@ import java.util.UUID;
 
 public record AjusteRequestDTO(
   @NotNull UUID idLoja,
-  @NotNull UUID idUsuario,
+  UUID idUsuario,
   @NotNull String justificativa,
   StatusDocumento status,
+  Integer versao,
   @NotEmpty @Valid List<ItemAjusteRequestDTO> itens
 ) {}

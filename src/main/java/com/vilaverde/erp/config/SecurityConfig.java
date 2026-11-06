@@ -29,6 +29,8 @@ public class SecurityConfig {
         .requestMatchers("/api/fornecedores/**","/api/compras/**","/api/recebimentos-compras/**").hasAnyRole("ADMIN","GER")
         .requestMatchers(org.springframework.http.HttpMethod.DELETE,"/api/vendas/**").denyAll()
         .requestMatchers(org.springframework.http.HttpMethod.DELETE,"/api/transferencias-estoque/**").denyAll()
+        .requestMatchers(org.springframework.http.HttpMethod.DELETE,"/api/ajustes-estoque/**").denyAll()
+        .requestMatchers("/api/ajustes-estoque/**").hasAnyRole("ADMIN","GER")
         .requestMatchers("/api/transferencias-estoque/**").hasAnyRole("ADMIN","GER")
         .requestMatchers("/api/vendas/**").hasAnyRole("ADMIN","GER","FUNC")
         .requestMatchers(org.springframework.http.HttpMethod.GET,"/api/produtos/**","/api/categorias/**","/api/unidades-medida/**","/api/produtos-sku/**","/api/produtos-loja/**","/api/produtos-precos-loja/**","/api/clientes/**","/api/vendas/**","/api/estoques/**","/api/movimentacoes-estoque/**").authenticated()
