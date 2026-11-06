@@ -38,6 +38,6 @@ public class SecurityConfig {
     return http.build();
   }
   private static void json(jakarta.servlet.http.HttpServletResponse res,int status,String message) throws java.io.IOException {
-    res.setStatus(status);res.setContentType("application/json");res.getWriter().write("{\"message\":\""+message+"\"}");
+    res.setStatus(status);res.setCharacterEncoding("UTF-8");res.setContentType("application/json");res.getWriter().write("{\"message\":\""+message+"\"}");
   }
 }

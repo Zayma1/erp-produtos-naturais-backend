@@ -16,10 +16,10 @@ public class SessionGuard extends OncePerRequestFilter {
       Long login=session==null ? null : (Long)session.getAttribute("authenticatedAt");
       if(u==null || !AuthPrincipal.of(u,false).enabled() || u.getAuthVersion()!=p.version() || login==null || System.currentTimeMillis()-login>=43200000L) {
         if(session!=null)session.invalidate(); SecurityContextHolder.clearContext();
-        response.setStatus(401);response.setContentType("application/json");response.getWriter().write("{\"message\":\"Sessão expirada. Entre novamente.\"}");return;
+        response.setStatus(401);response.setCharacterEncoding("UTF-8");response.setContentType("application/json");response.getWriter().write("{\"message\":\"Sessão expirada. Entre novamente.\"}");return;
       }
       if(p.alterarSenha() && !java.util.Set.of("/api/auth/me","/api/auth/csrf","/api/auth/logout","/api/auth/alterar-senha").contains(request.getRequestURI())) {
-        response.setStatus(403);response.setContentType("application/json");response.getWriter().write("{\"message\":\"Altere sua senha antes de continuar.\",\"code\":\"PASSWORD_CHANGE_REQUIRED\"}");return;
+        response.setStatus(403);response.setCharacterEncoding("UTF-8");response.setContentType("application/json");response.getWriter().write("{\"message\":\"Altere sua senha antes de continuar.\",\"code\":\"PASSWORD_CHANGE_REQUIRED\"}");return;
       }
     }
     chain.doFilter(request,response);

@@ -64,6 +64,7 @@ class AuthenticationTests {
   Browser authenticated(String email,UUID id) throws Exception {users.changePassword(id,initial,permanent);var b=new Browser();assertEquals(200,b.login(email,permanent).statusCode());return b;}
   @Test void anonymousAndCsrfAreEnforcedDirectly() throws Exception {
     var b=new Browser();for(String path:List.of("/api/categorias","/api/usuarios","/api/compras","/api/estoques"))assertEquals(401,b.call("GET",path,null,false).statusCode());
+    assertTrue(b.call("GET","/api/categorias",null,false).body().contains("Autenticação necessária"));
     assertEquals(401,b.call("POST","/api/auth/login",Map.of("email","admin@example.test","senha",initial),false).statusCode());
     var a=authenticated("admin@example.test",admin);
     assertEquals(403,a.call("POST","/api/categorias",Map.of("nome","Forbidden"),false).statusCode());
