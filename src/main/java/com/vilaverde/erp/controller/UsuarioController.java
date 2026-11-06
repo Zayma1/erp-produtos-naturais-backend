@@ -50,7 +50,7 @@ public class UsuarioController {
     return ResponseEntity.ok(usuarioService.atualizar(id, dto));
   }
 
-  public record Reset(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(min=12,max=72) String senha) {}
+  public record Reset(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(min=8,max=72) String senha) {}
   @ResponseStatus(HttpStatus.NO_CONTENT)
   @PostMapping("/{id}/senha-temporaria")
   @Operation(operationId="senhaTemporaria")

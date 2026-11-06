@@ -20,7 +20,7 @@ public class AuthController {
   private final UsuarioService users;
   private final SecurityContextRepository contexts;
   public record Login(@NotBlank @Size(max=254) String email,@NotBlank @Size(max=72) String senha) {}
-  public record Password(@NotBlank String senhaAtual,@NotBlank @Size(min=12,max=72) String novaSenha) {}
+  public record Password(@NotBlank String senhaAtual,@NotBlank @Size(min=8,max=72) String novaSenha) {}
   public record Identity(UUID id,String nome,String email,String cargo,Set<UUID> lojas,Set<String> permissions,boolean alterarSenha) {
     public static Identity of(AuthPrincipal p) { return new Identity(p.id(),p.nome(),p.email(),p.cargo().name(),p.lojas(),p.permissions(),p.alterarSenha()); }
   }

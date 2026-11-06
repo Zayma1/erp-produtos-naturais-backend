@@ -22,7 +22,7 @@ public class UsuarioService {
   private void lock() { jdbc.query("select pg_advisory_xact_lock(8120048)",rs -> {}); }
   private Usuario find(UUID id) { return users.findById(id).orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado")); }
   private void password(Usuario u,String raw,boolean temporary) {
-    if(raw==null || raw.length()<12 || raw.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>72) throw new InvalidInputException("Senha deve ter ao menos 12 caracteres e no máximo 72 bytes");
+    if(raw==null || raw.length()<8 || raw.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>72) throw new InvalidInputException("Senha deve ter ao menos 8 caracteres e no máximo 72 bytes");
     u.setSenhaHash(encoder.encode(raw));u.setAlterarSenha(temporary);
   }
   private void revoke(Usuario u) {

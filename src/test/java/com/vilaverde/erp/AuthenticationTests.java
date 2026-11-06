@@ -101,6 +101,19 @@ class AuthenticationTests {
     }
     assertEquals(1,repository.count());
   }
+  @Test void passwordPolicyAcceptsEightAndRejectsSevenCharacters() throws Exception {
+    var browser=new Browser();assertEquals(200,browser.login("admin@example.test",initial).statusCode());
+    assertEquals(400,browser.call("POST","/api/auth/alterar-senha",Map.of("senhaAtual",initial,"novaSenha","1234567"),true).statusCode());
+    assertEquals(204,browser.call("POST","/api/auth/alterar-senha",Map.of("senhaAtual",initial,"novaSenha","newpass8"),true).statusCode());
+    browser.csrf=null;assertEquals(200,browser.login("admin@example.test","newpass8").statusCode());
+    assertThrows(com.vilaverde.erp.exception.InvalidInputException.class,()->users.reset(employee,"1234567"));
+    users.reset(employee,"temp1234");assertTrue(encoder.matches("temp1234",repository.findById(employee).orElseThrow().getSenhaHash()));
+    assertThrows(com.vilaverde.erp.exception.InvalidInputException.class,()->users.criar(new UsuarioRequestDTO("Short","short@example.test","1234567",CargoUsuario.FUNC,StatusCadastro.ATIVO,Set.of())));
+    var account=users.criar(new UsuarioRequestDTO("Eight","eight@example.test","temp1234",CargoUsuario.FUNC,StatusCadastro.ATIVO,Set.of()));
+    assertTrue(encoder.matches("temp1234",repository.findById(account.id()).orElseThrow().getSenhaHash()));
+    assertEquals(400,browser.call("POST","/api/usuarios/"+employee+"/senha-temporaria",Map.of("senha","1234567"),true).statusCode());
+    assertEquals(204,browser.call("POST","/api/usuarios/"+employee+"/senha-temporaria",Map.of("senha","temp5678"),true).statusCode());
+  }
   @Test void exportAuthenticatedContract() throws Exception {
     var a=authenticated("admin@example.test",admin);var r=a.call("GET","/v3/api-docs",null,false);assertEquals(200,r.statusCode());
     var contract=json.readTree(r.body());
