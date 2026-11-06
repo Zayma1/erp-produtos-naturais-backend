@@ -122,3 +122,41 @@ valida o documento inteiro e grava movimentos e snapshots na mesma transação.
 V6 preserva registros anteriores como históricos somente leitura e interrompe
 migração com consulta de reconciliação para itens incompatíveis ou duplicados.
 Não existe contagem física, estorno ou permissão para estoque negativo.
+
+## Stage 12 — customer and supplier returns
+
+`stage12-returns` is based on `bdd39f3` and preserves stages 9–11. Flyway V7
+adds lifecycle/version audit, actor-owned creation idempotency, item snapshots
+and unique movement references. V1–V6 are unchanged. Both return resources
+support collection/detail GET, POST draft with UUID Idempotency-Key, PUT with
+version, and explicit POST conclude/cancel. Cancellation requires a reason;
+DELETE is forbidden. ADMIN/GER are limited to the source document's store.
+
+Customer returns require a completed non-legacy sale. Mixed stock dispositions
+are allowed once per source item/disposition, both consuming the sold allowance.
+Only restockable quantities create DEVOLUCAO entries. Non-restockable rows
+require an observation. Supplier returns require a partially/fully received
+purchase and both received allowance and available stock; they create
+DEVOLUCAO_FORNECEDOR exits. Neither workflow changes source totals/status or
+cumulative receipt quantities, and neither records refunds/credits/payments.
+
+Confirmation locks source, return, then stock in product/store order, rechecks
+confirmed totals, validates the whole document and applies all effects in one
+transaction. Replay has no duplicate effects. Drafts reserve no quantity.
+Confirmed/cancelled records are immutable. Existing returns are read-only
+legacy records and block new returns against their source until reviewed
+reconciliation establishes allowance; no effects are inferred or replayed.
+SQL read functions expose confirmed-return totals and unresolved legacy flags.
+Sale units use saved snapshots; purchase units are labeled as the unit at
+return creation, never as historical purchase units.
+
+Run `bash scripts/test-postgres.sh` with Java 21 and Docker. ReturnsTests cover
+partial/multiple/mixed returns, allowance, stock, identity, version, authorization,
+idempotency, concurrency with other stock writers, overflow and rollback.
+MigrationTests cover V6→V7 quarantine and reconnect persistence. Export the
+full OpenAPI with ReturnsTests.exportOpenApi, then generate the SDK using
+`OPENAPI_FILE=openapi-stage12.json npm run sdk:generate`.
+
+No merge, deployment or shared-database migration. Refunds, supplier credits,
+fiscal documents, exchanges, cross-store returns, quarantine stock, reversal,
+time-window policies and dependency upgrades are deferred.

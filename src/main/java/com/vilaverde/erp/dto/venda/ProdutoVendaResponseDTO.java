@@ -5,6 +5,9 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public record ProdutoVendaResponseDTO(
+  BigDecimal quantidadeDevolvida,
+  BigDecimal quantidadeDevolvivel,
+  boolean devolucaoLegadaPendente,
   UUID id,
   UUID idProduto,
   String nomeProduto,
@@ -16,6 +19,9 @@ public record ProdutoVendaResponseDTO(
 ) {
   public static ProdutoVendaResponseDTO fromEntity(ProdutoVenda item) {
     return new ProdutoVendaResponseDTO(
+      item.getQuantidadeDevolvida()==null ? BigDecimal.ZERO : item.getQuantidadeDevolvida(),
+      item.isDevolucaoLegadaPendente() ? null : item.getQuantidade().subtract(item.getQuantidadeDevolvida()==null ? BigDecimal.ZERO : item.getQuantidadeDevolvida()),
+      item.isDevolucaoLegadaPendente(),
       item.getId(),
       item.getProduto().getId(),
       item.getProduto().getNome(),

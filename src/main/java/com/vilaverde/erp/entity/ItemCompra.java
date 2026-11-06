@@ -13,6 +13,10 @@ import lombok.*;
 @AllArgsConstructor
 public class ItemCompra {
 
+  @org.hibernate.annotations.Formula("devolucao_fornecedor_quantidade(id)")
+  private BigDecimal quantidadeDevolvida;
+  @org.hibernate.annotations.Formula("devolucao_fornecedor_legada(id_compra)")
+  private boolean devolucaoLegadaPendente;
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;

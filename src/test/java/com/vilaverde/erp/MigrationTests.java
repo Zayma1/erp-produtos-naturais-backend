@@ -139,4 +139,20 @@ class MigrationTests {
    assertThrows(Exception.class,()->flyway().migrate());
    var r=st.executeQuery("select count(*) from information_schema.columns where table_name='ajuste_estoque' and column_name='legado'");r.next();assertEquals(0,r.getInt(1));
  }
+
+ @Test void v6ReturnsAreQuarantinedAndPreservedAfterReconnectWithoutReplay() throws Exception {
+  salesLegacy("ABERTA",false);
+  Flyway.configure().dataSource(url,"stage7","local-stage7-only").locations("classpath:db/migration").target("6").load().migrate();
+  var st=connection.createStatement();UUID d=UUID.randomUUID(),i=UUID.randomUUID();
+  st.execute("insert into devolucao_cliente(id,id_venda,status,motivo,criado_em) values ('"+d+"','00000000-0000-4000-8000-000000000005','CONCLUIDA','Histórica',now())");
+  st.execute("insert into item_devolucao_cliente(id,id_devolucao_cliente,id_item_venda,id_produto,quantidade,retorna_ao_estoque) values ('"+i+"','"+d+"','00000000-0000-4000-8000-000000000006','00000000-0000-4000-8000-000000000003',1,false)");
+  st.execute("insert into fornecedor(id,nome_fantasia,razao_social,estado,cidade,bairro,status) values ('00000000-0000-4000-8000-000000000009','F','F','SC','C','B','ATIVO')");
+  st.execute("insert into compra(id,id_fornecedor,id_loja,status,valor_total,data_compra,criado_em) values ('00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000009','00000000-0000-4000-8000-000000000004','RECEBIDA',1,now(),now())");
+  UUID supplier=UUID.randomUUID();st.execute("insert into devolucao_fornecedor(id,id_compra,status,criado_em) values ('"+supplier+"','00000000-0000-4000-8000-000000000010','RASCUNHO',now())");
+  flyway().migrate();connection.close();connection=DriverManager.getConnection(url,"stage7","local-stage7-only");flyway().migrate();
+  var r=connection.createStatement().executeQuery("select legado,concluido_em from devolucao_cliente where id='"+d+"'");r.next();assertTrue(r.getBoolean(1));assertNull(r.getObject(2));
+  r=connection.createStatement().executeQuery("select devolucao_cliente_legada('00000000-0000-4000-8000-000000000005'),devolucao_cliente_quantidade('00000000-0000-4000-8000-000000000006'),devolucao_fornecedor_legada('00000000-0000-4000-8000-000000000010')");r.next();assertTrue(r.getBoolean(1));assertEquals(0,r.getBigDecimal(2).signum());assertTrue(r.getBoolean(3));
+  r=connection.createStatement().executeQuery("select count(*) from movimentacao_estoque");r.next();assertEquals(0,r.getInt(1));
+  r=connection.createStatement().executeQuery("select quantidade,retorna_ao_estoque from item_devolucao_cliente where id='"+i+"'");r.next();assertEquals(1,r.getInt(1));assertFalse(r.getBoolean(2));
+ }
 }

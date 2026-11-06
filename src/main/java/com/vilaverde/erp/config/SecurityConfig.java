@@ -30,6 +30,8 @@ public class SecurityConfig {
         .requestMatchers(org.springframework.http.HttpMethod.DELETE,"/api/vendas/**").denyAll()
         .requestMatchers(org.springframework.http.HttpMethod.DELETE,"/api/transferencias-estoque/**").denyAll()
         .requestMatchers(org.springframework.http.HttpMethod.DELETE,"/api/ajustes-estoque/**").denyAll()
+        .requestMatchers(org.springframework.http.HttpMethod.DELETE,"/api/devolucoes-clientes/**","/api/devolucoes-fornecedores/**").denyAll()
+        .requestMatchers("/api/devolucoes-clientes/**","/api/devolucoes-fornecedores/**").hasAnyRole("ADMIN","GER")
         .requestMatchers("/api/ajustes-estoque/**").hasAnyRole("ADMIN","GER")
         .requestMatchers("/api/transferencias-estoque/**").hasAnyRole("ADMIN","GER")
         .requestMatchers("/api/vendas/**").hasAnyRole("ADMIN","GER","FUNC")
