@@ -146,7 +146,8 @@ class AuthenticationTests {
     assertEquals("[]",m.call("GET","/api/compras",null,false).body());assertEquals(404,m.call("GET","/api/compras/"+purchase,null,false).statusCode());
     assertEquals(404,m.call("GET","/api/lojas/"+other,null,false).statusCode());
     assertEquals(400,e.call("PUT","/api/vendas/"+UUID.randomUUID(),Map.of(),true).statusCode());
-    assertEquals(403,m.call("POST","/api/ajustes-estoque",Map.of(),true).statusCode());
+    assertEquals(400,m.call("POST","/api/ajustes-estoque",Map.of(),true).statusCode());
+    assertEquals(403,e.call("POST","/api/ajustes-estoque",Map.of(),true).statusCode());
     assertEquals(404,e.call("GET","/api/estoques/saldo?idProduto="+UUID.randomUUID()+"&idLoja="+other,null,false).statusCode());
   }
 
