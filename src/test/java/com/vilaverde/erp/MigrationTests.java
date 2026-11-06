@@ -78,4 +78,33 @@ class MigrationTests {
     var r=st.executeQuery("select count(*) from usuario where senha_hash='legacy'");r.next();assertEquals(2,r.getInt(1));
   }
 
+  void salesLegacy(String status,boolean invalid) throws Exception {
+    Flyway.configure().dataSource(url,"stage7","local-stage7-only").locations("classpath:db/migration").target("3").load().migrate();
+    var st=connection.createStatement();
+    st.execute("insert into categoria values ('00000000-0000-4000-8000-000000000001','C')");
+    st.execute("insert into unidade_medida(id,nome,sigla) values ('00000000-0000-4000-8000-000000000002','U','KG')");
+    st.execute("insert into produto(id,nome,id_categoria,id_unidade_medida,tipo_venda,status,criado_em) values ('00000000-0000-4000-8000-000000000003','P','00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002','UNIDADE','ATIVO',now())");
+    st.execute("insert into loja(id,cnpj,nome_fantasia,razao_social,bairro,cidade,estado,numero,status,criado_em) values ('00000000-0000-4000-8000-000000000004','12345678901234','L','L','B','C','SC','1','ATIVA',now())");
+    st.execute("insert into cliente(id,nome,criado_em) values ('00000000-0000-4000-8000-000000000007','C',now())");
+    st.execute("insert into usuario(id,nome,email,cargo,senha_hash,status,criado_em) values ('00000000-0000-4000-8000-000000000008','U','u@example.test','FUNC','test','ATIVO',now())");
+    st.execute("insert into venda(id,id_cliente,id_usuario,data_venda,status,subtotal,desconto_total,valor_total,criado_em,id_loja) values ('00000000-0000-4000-8000-000000000005','00000000-0000-4000-8000-000000000007','00000000-0000-4000-8000-000000000008',now(),'"+status+"',1,0,1,now(),'00000000-0000-4000-8000-000000000004')");
+    st.execute("insert into produto_venda(id,id_venda,id_produto,quantidade,preco_unitario,desconto,total_item,unidade_sigla_snapshot) values ('00000000-0000-4000-8000-000000000006','00000000-0000-4000-8000-000000000005','00000000-0000-4000-8000-000000000003',1,"+(invalid ? "-1" : "1")+",0,1,'KG')");
+  }
+  @Test void validOpenSalesPreserveItemsSnapshotsAndReferences() throws Exception {
+    salesLegacy("ABERTA",false);flyway().migrate();
+    var r=connection.createStatement().executeQuery("select v.versao,v.legado,i.unidade_sigla_snapshot,i.id from venda v join produto_venda i on i.id_venda=v.id");r.next();
+    assertEquals(0,r.getInt(1));assertFalse(r.getBoolean(2));assertEquals("KG",r.getString(3));assertEquals("00000000-0000-4000-8000-000000000006",r.getString(4));
+  }
+  @Test void historicalCompletedSalesAreQuarantinedWithoutStockReplay() throws Exception {
+    salesLegacy("CONCLUIDA",false);flyway().migrate();flyway().migrate();
+    var r=connection.createStatement().executeQuery("select legado,concluido_em from venda");r.next();assertTrue(r.getBoolean(1));assertNull(r.getObject(2));
+    r=connection.createStatement().executeQuery("select count(*) from movimentacao_estoque");r.next();assertEquals(0,r.getInt(1));
+    r=connection.createStatement().executeQuery("select count(*) from estoque_produto");r.next();assertEquals(0,r.getInt(1));
+  }
+  @Test void invalidSalesBlockV4WithoutAlteringLegacyData() throws Exception {
+    salesLegacy("ABERTA",true);assertThrows(org.flywaydb.core.api.FlywayException.class,()->flyway().migrate());
+    var r=connection.createStatement().executeQuery("select preco_unitario from produto_venda");r.next();assertEquals(-1,r.getInt(1));
+    r=connection.createStatement().executeQuery("select count(*) from information_schema.columns where table_name='venda' and column_name='versao'");r.next();assertEquals(0,r.getInt(1));
+  }
+
 }

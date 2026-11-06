@@ -38,10 +38,11 @@ public class VendaController {
   @Operation(operationId = "criarVenda")
   @PostMapping
   public ResponseEntity<VendaResponseDTO> criar(
+    @RequestHeader("Idempotency-Key") UUID chave,
     @Valid @RequestBody VendaRequestDTO dto
   ) {
     return ResponseEntity.status(HttpStatus.CREATED).body(
-      vendaService.criar(dto)
+      vendaService.criar(chave, dto)
     );
   }
 
@@ -54,6 +55,18 @@ public class VendaController {
     return ResponseEntity.ok(vendaService.atualizar(id, dto));
   }
 
+  @Operation(operationId = "concluirVenda")
+  @PostMapping("/{id}/concluir")
+  public ResponseEntity<VendaResponseDTO> concluir(@PathVariable UUID id,
+    @Valid @RequestBody com.vilaverde.erp.dto.venda.VendaAcaoDTO dto) {
+    return ResponseEntity.ok(vendaService.concluir(id,dto.versao()));
+  }
+  @Operation(operationId = "cancelarVenda")
+  @PostMapping("/{id}/cancelar")
+  public ResponseEntity<VendaResponseDTO> cancelar(@PathVariable UUID id,
+    @Valid @RequestBody com.vilaverde.erp.dto.venda.VendaAcaoDTO dto) {
+    return ResponseEntity.ok(vendaService.cancelar(id,dto.versao(),dto.motivo()));
+  }
   @Operation(operationId = "excluirVenda")
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> excluir(@PathVariable UUID id) {

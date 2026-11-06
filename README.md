@@ -65,3 +65,40 @@ O terminal solicita nome/e-mail e senha temporária sem eco. A alternativa inter
 `bash scripts/test-postgres.sh` cria PostgreSQL descartável, executa preflight real e testa migrações, colisões, invalidação legada, login/hash/CSRF, rotação, expirações, revogações, perfis/lojas, replay/identidade, atribuição e concorrência do último administrador, além da regressão de recebimento. `IntegrationBootstrapTests` só existe no classpath de teste, exige `CATALOG_DISPOSABLE=1`, datasource loopback e senha aleatória fornecida pelo runner; não cria endpoint nem faz parte do JAR executável. O SDK completo é regenerado do contrato `openapi-stage8.json` com o lock Kubb existente.
 
 A implantação deve ser coordenada com o frontend. Esta implementação não executa migrações em bancos compartilhados, publicação ou merge de release.
+
+### Vendas (V4)
+
+`POST /api/vendas` exige `Idempotency-Key` UUID, cliente, loja e itens. A identidade
+pertence à sessão; `idUsuario` opcional só pode identificar a própria conta. Chave,
+hash canônico e venda são persistidos na mesma transação, sem expiração automática.
+Repetição concorrente retorna a mesma identidade; outro conteúdo gera 409 e outra
+conta recebe 404. A leitura do replay também valida o acesso atual à loja da venda.
+
+`PUT /api/vendas/{id}` exige `versao` e venda aberta. IDs de itens existentes devem
+ser mantidos; omissões removem itens e IDs novos devem ficar ausentes. Mudar de loja
+exige acesso à origem e ao destino. Preços são informados explicitamente; subtotal
+arredonda a soma bruta (HALF_UP), descontos são monetários e totais dos itens são
+arredondados separadamente. Observação, versão, totais e unidades históricas retornam
+nas consultas. Operações de gravação não aceitam `status` no payload.
+
+`POST /api/vendas/{id}/concluir` recebe `{ "versao": 0 }`. Bloqueia a venda e os
+saldos em ordem de produto, agrega produtos repetidos, verifica todos os saldos e
+aplica débitos atômicos. Cada item origina uma `SAIDA_VENDA` positiva com ator e
+horário do servidor. Repetir uma conclusão operacional retorna a venda existente.
+A confirmação registra a venda e a movimentação, **sem registrar pagamento**.
+
+`POST /api/vendas/{id}/cancelar` recebe versão e `motivo` não vazio; só permite venda
+aberta, preserva o histórico e não altera estoque. Repetir retorna o cancelamento
+existente. Concluídas/canceladas são imutáveis; DELETE permanece proibido.
+Inválidos retornam 400, registros ausentes/fora do escopo 404, versões/transições/
+estoque em conflito 409. ADMIN/GER/FUNC mantêm sessão, CSRF e escopo de lojas.
+
+Antes de aplicar V4 a dados existentes, execute `scripts/sales-preflight.sql` em
+modo de leitura e guarde o relatório de reconciliação. Dados monetários inválidos
+bloqueiam a migração; IDs, referências e snapshots válidos são preservados.
+Concluídas/canceladas preexistentes recebem `legado=true`, sem inventar atores,
+horários ou movimentos. Permanecem consultáveis e nunca são reexecutadas. O relatório
+identifica conclusões sem movimento verificável para reconciliação humana.
+
+`bash scripts/test-postgres.sh` usa somente bancos PostgreSQL descartáveis e cobre
+vendas, migrações V1–V4, autenticação e recebimento, incluindo concorrência e rollback.

@@ -10,7 +10,9 @@ public record ProdutoVendaResponseDTO(
   String nomeProduto,
   BigDecimal quantidade,
   BigDecimal precoUnitario,
-  BigDecimal desconto
+  BigDecimal desconto,
+  BigDecimal totalItem,
+  String unidadeSiglaSnapshot
 ) {
   public static ProdutoVendaResponseDTO fromEntity(ProdutoVenda item) {
     return new ProdutoVendaResponseDTO(
@@ -19,7 +21,9 @@ public record ProdutoVendaResponseDTO(
       item.getProduto().getNome(),
       item.getQuantidade(),
       item.getPrecoUnitario(),
-      item.getDesconto()
+      item.getDesconto(),
+      item.getTotalItem(),
+      item.getUnidadeSiglaSnapshot()
     );
   }
 }
