@@ -51,6 +51,7 @@ public class UsuarioController {
   }
 
   public record Reset(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(min=12,max=72) String senha) {}
+  @ResponseStatus(HttpStatus.NO_CONTENT)
   @PostMapping("/{id}/senha-temporaria")
   @Operation(operationId="senhaTemporaria")
   public ResponseEntity<Void> reset(@PathVariable UUID id,@Valid @RequestBody Reset d) {
@@ -58,6 +59,7 @@ public class UsuarioController {
   }
 
   @Operation(operationId = "excluirUsuario")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> excluir(@PathVariable UUID id) {
     usuarioService.excluir(id);

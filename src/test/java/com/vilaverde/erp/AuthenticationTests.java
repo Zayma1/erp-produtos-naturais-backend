@@ -73,6 +73,9 @@ class AuthenticationTests {
   }
   @Test void exportAuthenticatedContract() throws Exception {
     var a=authenticated("admin@example.test",admin);var r=a.call("GET","/v3/api-docs",null,false);assertEquals(200,r.statusCode());
+    var contract=json.readTree(r.body());
+    assertTrue(contract.path("paths").path("/api/auth/login").path("post").path("responses").has("429"));
+    assertTrue(contract.path("paths").path("/api/auth/logout").path("post").path("responses").has("204"));
     String output=System.getenv("OPENAPI_EXPORT_FILE");if(output!=null)java.nio.file.Files.writeString(java.nio.file.Path.of(output),r.body());
   }
   @Test void normalizedLoginHashRotationAndMandatoryPasswordChange() throws Exception {
