@@ -157,6 +157,16 @@ MigrationTests cover V6→V7 quarantine and reconnect persistence. Export the
 full OpenAPI with ReturnsTests.exportOpenApi, then generate the SDK using
 `OPENAPI_FILE=openapi-stage12.json npm run sdk:generate`.
 
-No merge, deployment or shared-database migration. Refunds, supplier credits,
+Stage 12 was merged from `stage12-returns` into `novaVersao` on 2026-11-06,
+at the user's request, preserving the history of stages 9–11. The backend
+`main` branch remains unchanged, and the source branch is retained. The validated
+runtime commit is `c87fe72a66ca2fe8aaf14bead7101c0e95e27267`:
+[PostgreSQL CI passed](https://github.com/Zayma1/erp-produtos-naturais-backend/actions/runs/42284077339),
+75 tests recorded (74 executed, one integration-only bootstrap skipped).
+The integration changes documentation around that tested code and triggers the
+normal destination-branch checks; it does not perform a manual deployment or
+shared-database migration.
+
+Refunds, supplier credits,
 fiscal documents, exchanges, cross-store returns, quarantine stock, reversal,
 time-window policies and dependency upgrades are deferred.
