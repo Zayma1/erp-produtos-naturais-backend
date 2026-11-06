@@ -107,4 +107,18 @@ class MigrationTests {
     r=connection.createStatement().executeQuery("select count(*) from information_schema.columns where table_name='venda' and column_name='versao'");r.next();assertEquals(0,r.getInt(1));
   }
 
+
+ @Test void v4TransfersBecomeReadOnlyWithoutInventedSnapshotsOrEffects() throws Exception {
+   salesLegacy("ABERTA",false);
+   Flyway.configure().dataSource(url,"stage7","local-stage7-only").locations("classpath:db/migration").target("4").load().migrate();
+   var st=connection.createStatement();String other=UUID.randomUUID().toString(),transfer=UUID.randomUUID().toString(),item=UUID.randomUUID().toString();
+   st.execute("insert into loja(id,cnpj,nome_fantasia,razao_social,bairro,cidade,estado,numero,status,criado_em) select '"+other+"','22345678901234','Other',razao_social,bairro,cidade,estado,numero,status,criado_em from loja");
+   st.execute("insert into transferencia_estoque(id,id_loja_origem,id_loja_destino,status,criado_em) values ('"+transfer+"','00000000-0000-4000-8000-000000000004','"+other+"','RASCUNHO',now())");
+   st.execute("insert into item_transferencia(id,id_transferencia,id_produto,quantidade) values ('"+item+"','"+transfer+"','00000000-0000-4000-8000-000000000003',1)");
+   flyway().migrate();connection.close();connection=DriverManager.getConnection(url,"stage7","local-stage7-only");flyway().migrate();
+   var r=connection.createStatement().executeQuery("select t.legado,t.versao,t.concluido_em,i.id,i.unidade_sigla_snapshot from transferencia_estoque t join item_transferencia i on t.id=i.id_transferencia");r.next();
+   assertTrue(r.getBoolean(1));assertEquals(0,r.getInt(2));assertNull(r.getObject(3));assertEquals(item,r.getString(4));assertNull(r.getString(5));
+   r=connection.createStatement().executeQuery("select count(*) from movimentacao_estoque");r.next();assertEquals(0,r.getInt(1));
+   r=connection.createStatement().executeQuery("select count(*) from estoque_produto");r.next();assertEquals(0,r.getInt(1));
+ }
 }

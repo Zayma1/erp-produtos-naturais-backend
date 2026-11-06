@@ -102,3 +102,15 @@ identifica conclusões sem movimento verificável para reconciliação humana.
 
 `bash scripts/test-postgres.sh` usa somente bancos PostgreSQL descartáveis e cobre
 vendas, migrações V1–V4, autenticação e recebimento, incluindo concorrência e rollback.
+
+### Transferências de estoque — etapa 10 (V5)
+
+Branch `stage10-transfers`, empilhada sobre `stage9-sales` (`65d6585`). V1–V4 permanecem inalteradas. V5 preserva todos os documentos anteriores como `legado=true`, inclusive rascunhos: somente consulta até reconciliação humana, sem inferir saldos, snapshots ou reproduzir conclusão.
+
+`/api/transferencias-estoque` exige sessão ADMIN/GER e acesso às **duas lojas**. GET aceita `idLojaOrigem`, `idLojaDestino`, `status`; GET `/{id}` retorna itens/IDs, unidade salva, versão e auditoria. POST exige `Idempotency-Key` UUID e cria `RASCUNHO`; PUT `/{id}` substitui o rascunho com `versao`, mantendo IDs informados e removendo omitidos. Campos de status são rejeitados. Operador vem da sessão; eventual `idUsuario` só pode apontar para ela. Criação registra chave, hash canônico e ator na mesma transação; replay revalida ator e acesso às duas lojas. Alterar lojas exige acesso aos pares antigo e novo.
+
+POST `/{id}/concluir` recebe `{ "versao": N }`: move imediatamente estoque da origem ao destino, sem reserva, trânsito ou recebimento posterior. Bloqueia documento e pares de saldo em ordem produto→loja; insere saldos ausentes a zero dentro da transação e valida todos os itens e o limite numeric(14,3) antes dos efeitos. Movimentos positivos `TRANSFERENCIA_SAIDA`/`TRANSFERENCIA_ENTRADA` ligam documento, item e confirmador; usam horário do servidor. Unique por item/direção e replay da confirmação impedem duplicação. A data comercial permanece separada.
+
+POST `/{id}/cancelar` recebe versão e `motivo` obrigatório; apenas rascunhos, sem efeitos no estoque. Repetição retorna o cancelamento existente. Confirmados são imutáveis; DELETE é proibido. Erros: 400 entrada/precisão/produto duplicado/lojas iguais; 404 ausente ou fora do escopo; 409 versão/estado/falta/overflow. Falhas revertem saldos novos e existentes, movimentos e estado do documento.
+
+`bash scripts/test-postgres.sh` cobre transferências, concorrência com recebimentos/vendas e direções opostas, rollback, escopo, CSRF, auditoria, identidade de itens, idempotência, migração V4→V5 e regressões. O contrato autenticado está em `openapi-stage10.json`; gere com `OPENAPI_FILE=./openapi-stage10.json npm run sdk:generate` usando o lock existente. Não executar migração compartilhada, reparo histórico ou deploy como parte desta etapa. Ajustes e reversões continuam adiados.
