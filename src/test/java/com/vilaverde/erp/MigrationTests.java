@@ -62,4 +62,20 @@ class MigrationTests {
     flyway().baseline(); assertThrows(org.flywaydb.core.api.FlywayException.class,()->flyway().migrate());
     var result=connection.createStatement().executeQuery("select count(*) from information_schema.columns where table_name='recebimento_compra' and column_name='versao'"); result.next(); assertEquals(0,result.getInt(1));
   }
+  @Test void authenticationMigrationInvalidatesLegacyWithoutGrantingPrivileges() throws Exception {
+    Flyway.configure().dataSource(url,"stage7","local-stage7-only").locations("classpath:db/migration").target("2").load().migrate();
+    UUID id=UUID.randomUUID();var st=connection.createStatement();
+    st.execute("insert into usuario(id,nome,email,cargo,senha_hash,status,criado_em) values ('"+id+"','Legacy',' LEGACY@EXAMPLE.TEST ','ADMIN','plaintext-never-accepted','ATIVO',now())");
+    flyway().migrate();var r=st.executeQuery("select * from usuario where id='"+id+"'");r.next();
+    assertEquals("legacy@example.test",r.getString("email"));assertEquals("ADMIN",r.getString("cargo_legado"));assertEquals("FUNC",r.getString("cargo"));assertFalse(r.getBoolean("revisado"));assertEquals("!INVALIDATED!",r.getString("senha_hash"));
+    r=st.executeQuery("select count(*) from usuario_loja");r.next();assertEquals(0,r.getInt(1));
+  }
+  @Test void normalizedEmailCollisionReportsEveryIdAndRollsBack() throws Exception {
+    Flyway.configure().dataSource(url,"stage7","local-stage7-only").locations("classpath:db/migration").target("2").load().migrate();
+    var st=connection.createStatement();UUID a=UUID.randomUUID(),b=UUID.randomUUID();
+    st.execute("insert into usuario(id,nome,email,cargo,senha_hash,status,criado_em) values ('"+a+"','A',' A@example.test ','ADMIN','legacy','ATIVO',now()),('"+b+"','B','a@example.test','GER','legacy','ATIVO',now())");
+    var ex=assertThrows(org.flywaydb.core.api.FlywayException.class,()->flyway().migrate());String detail=ex.getMessage();assertTrue(detail.contains(a.toString()));assertTrue(detail.contains(b.toString()));
+    var r=st.executeQuery("select count(*) from usuario where senha_hash='legacy'");r.next();assertEquals(2,r.getInt(1));
+  }
+
 }

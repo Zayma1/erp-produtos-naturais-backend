@@ -50,6 +50,13 @@ public class UsuarioController {
     return ResponseEntity.ok(usuarioService.atualizar(id, dto));
   }
 
+  public record Reset(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(min=12,max=72) String senha) {}
+  @PostMapping("/{id}/senha-temporaria")
+  @Operation(operationId="senhaTemporaria")
+  public ResponseEntity<Void> reset(@PathVariable UUID id,@Valid @RequestBody Reset d) {
+    usuarioService.reset(id,d.senha());return ResponseEntity.noContent().build();
+  }
+
   @Operation(operationId = "excluirUsuario")
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> excluir(@PathVariable UUID id) {

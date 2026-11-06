@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class ProdutoLojaService {
+  private final com.vilaverde.erp.security.AccessScope scope;
 
   private final ProdutoLojaRepository produtoLojaRepository;
   private final ProdutoRepository produtoRepository;
@@ -26,15 +27,7 @@ public class ProdutoLojaService {
 
   @Transactional(readOnly = true)
   public List<ProdutoLojaResponseDTO> listar(UUID idProduto, UUID idLoja) {
-    List<ProdutoLoja> vinculos;
-    if (idProduto != null) {
-      vinculos = produtoLojaRepository.findByProdutoId(idProduto);
-    } else if (idLoja != null) {
-      vinculos = produtoLojaRepository.findByLojaId(idLoja);
-    } else {
-      vinculos = produtoLojaRepository.findAll();
-    }
-    return vinculos.stream().map(ProdutoLojaResponseDTO::fromEntity).toList();
+    return scope.rows(produtoLojaRepository,"loja.id").stream().filter(e -> (idProduto==null || e.getProduto().getId().equals(idProduto)) && (idLoja==null || e.getLoja().getId().equals(idLoja))).map(ProdutoLojaResponseDTO::fromEntity).toList();
   }
 
   @Transactional(readOnly = true)
@@ -69,6 +62,7 @@ public class ProdutoLojaService {
   private ProdutoLoja buscar(UUID id) {
     return produtoLojaRepository
       .findById(id)
+      .filter(e -> scope.permits(e.getLoja().getId()))
       .orElseThrow(() ->
         new ResourceNotFoundException("Vínculo produto-loja não encontrado")
       );
@@ -83,6 +77,7 @@ public class ProdutoLojaService {
   }
 
   private Loja buscarLoja(UUID id) {
+    scope.store(id);
     return lojaRepository
       .findById(id)
       .orElseThrow(() -> new ResourceNotFoundException("Loja não encontrada"));

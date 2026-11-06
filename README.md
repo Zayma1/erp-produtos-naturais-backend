@@ -28,3 +28,36 @@ Compra com qualquer recebimento não pode ser editada/excluída; excluir todos o
 Com a API local em execução: `curl -f http://127.0.0.1:8087/v3/api-docs -o openapi-stage7.json`, `npm ci --include=dev`, `OPENAPI_FILE=./openapi-stage7.json npm run sdk:generate`. A geração completa usa URL base vazia; consumidores podem configurá-la. Não editar arquivos gerados manualmente.
 
 Referências: [locks PostgreSQL](https://www.postgresql.org/docs/16/explicit-locking.html). Autenticação, reversão, devolução, ajustes/transferências e fechamento de venda permanecem fora desta entrega.
+
+## Etapa 8 — autenticação por sessão
+
+A base continua sendo `novaVersao` com recebimento. `cargoUsuario` foi inspecionada e adaptada: seus valores `ADMIN`, `GER`, `FUNC` foram mantidos, mas o loader retornava `null`, faltava registro de serviço, a persistência/validação do enum e as authorities estavam incorretas, `findByUuid` era inválido, as rotas continuavam `permitAll` e a senha era gravada em texto puro. A branch também antecede as garantias de recebimento; não foi incorporada integralmente.
+
+Todas as APIs de negócio exigem sessão; não há cadastro público. `GET /api/auth/csrf` cria/retorna a proteção CSRF; envie o token em `X-CSRF-TOKEN` em login, logout e demais escritas. Endpoints: `POST /api/auth/login` (`email`, `senha`), `GET /api/auth/me`, `POST /api/auth/logout`, `POST /api/auth/alterar-senha` (`senhaAtual`, `novaSenha`). O login normaliza e-mail, usa BCrypt (custo 12), limita cinco falhas em 15 minutos por e-mail no PostgreSQL e devolve 429 durante o bloqueio. Mensagem de credencial inválida é genérica. Senhas têm mínimo de 12 caracteres e máximo de 72 bytes UTF-8.
+
+Sessões Spring Session JDBC usam o cookie `SESSION`, com expiração de 30 minutos de inatividade e 12 horas desde o login. O identificador gira no login. Troca/reset de senha, desativação e qualquer alteração administrativa invalidam sessões por remoção e versão de autenticação persistida. Senhas temporárias permitem apenas consultar identidade/CSRF, trocar senha ou sair. A troca invalida as sessões; entre novamente com a nova senha. Respostas não incluem hashes.
+
+`/api/usuarios` é exclusivo de ADMIN: GET lista, POST cria; `/{id}` GET consulta, PUT edita, DELETE **desativa**, sem apagar referências históricas; POST `/{id}/senha-temporaria` recebe `senha`. POST/PUT recebem nome, e-mail, cargo, status (`ATIVO`/`INATIVO`), lojas (UUIDs) e senha temporária (obrigatória na criação; opcional na edição). Um lock PostgreSQL comum serializa mudanças em contas/bootstrap e impede remoção concorrente do último administrador ativo.
+
+ADMIN gerencia contas/lojas e todos os dados. GER gerencia catálogo compartilhado, clientes, fornecedores e compras/recebimentos em lojas atribuídas. FUNC lê catálogo, cria/consulta/edita clientes e registra vendas abertas; lê estoque e movimentos apenas das lojas atribuídas. Catálogo, clientes e fornecedores são organizacionais. Listagens de recursos associados a lojas restringem o SQL às atribuições; detalhes e gravações revalidam a loja e ocultam IDs indevidos com 404. Operações proibidas recebem 403. Vendas PUT/DELETE, checkout, ajustes, transferências e demais fluxos sem suporte continuam negados. Omissão de filtro não libera lojas. Compras/recebimentos preservam o autor e registram modificador; confirmação/movimentos usam o confirmador real. IDs de operador forjados são rejeitados; replay de idempotência também valida ator e loja.
+
+### Migração e primeiro administrador
+
+V3 preserva IDs e referências; copia cargos antigos para `cargo_legado`, normaliza e-mails, invalida **todas** as senhas anteriores e marca contas como não revisadas. Nenhum cargo antigo concede privilégio ou atribuição automática: o cargo efetivo inicial é FUNC, sem lojas e sem login. Colisões de e-mail normalizado interrompem a migração com os IDs para reconciliação; nunca há fusão de contas. Faça backup e siga o preflight/baseline das migrações anteriores; adicionalmente execute `DATABASE_URL=... bash scripts/auth-preflight.sh` antes de V3. Esse comando é somente leitura. V3 repete a verificação dentro da transação. Não use `ddl-auto=create`.
+
+Depois de migrar, execute o comando local com o mesmo datasource e **sem servidor HTTP**:
+
+```bash
+./mvnw -DskipTests package
+java -jar target/erp-0.0.1-SNAPSHOT.jar --spring.profiles.active=bootstrap-admin --spring.main.web-application-type=none
+```
+
+O terminal solicita nome/e-mail e senha temporária sem eco. Não há senha padrão, segredo em argumento ou endpoint de bootstrap. Se não existir administrador ativo, o comando cria um ou revisa a conta do e-mail informado, preservando seu ID. Havendo administrador ativo, recusa novo bootstrap. Use então as APIs administrativas para revisar/resetar as demais contas. Nenhuma credencial antiga é aceita como fallback.
+
+`SESSION_COOKIE_SECURE` é `true` por padrão; use `false` somente em localhost HTTP de desenvolvimento/testes. A aplicação Next relê esse cookie pelo seu proxy de mesma origem; o cookie público é host-only, HttpOnly, SameSite=Lax, Secure fora de localhost. Nunca exponha a URL de banco ou credenciais no frontend.
+
+### Testes
+
+`bash scripts/test-postgres.sh` cria PostgreSQL descartável, executa preflight real e testa migrações, colisões, invalidação legada, login/hash/CSRF, rotação, expirações, revogações, perfis/lojas, replay/identidade, atribuição e concorrência do último administrador, além da regressão de recebimento. `IntegrationBootstrapTests` só existe no classpath de teste, exige `CATALOG_DISPOSABLE=1`, datasource loopback e senha aleatória fornecida pelo runner; não cria endpoint nem faz parte do JAR executável. O SDK completo é regenerado do contrato `openapi-stage8.json` com o lock Kubb existente.
+
+A implantação deve ser coordenada com o frontend. Esta implementação não executa migrações em bancos compartilhados, publicação ou merge de release.

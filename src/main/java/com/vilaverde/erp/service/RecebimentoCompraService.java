@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class RecebimentoCompraService {
+  private final com.vilaverde.erp.security.AccessScope scope;
   private final RecebimentoCompraRepository repository;
   private final ItemRecebimentoCompraRepository itemRepository;
   private final CompraRepository compraRepository;
@@ -28,8 +29,7 @@ public class RecebimentoCompraService {
 
   @Transactional(readOnly=true)
   public List<RecebimentoCompraResponseDTO> listar(UUID idCompra) {
-    return (idCompra == null ? repository.findAll() : repository.findByCompraId(idCompra))
-      .stream().map(e -> RecebimentoCompraResponseDTO.fromEntity(e, null)).toList();
+    return scope.rows(repository,"compra.loja.id").stream().filter(e -> idCompra==null || e.getCompra().getId().equals(idCompra)).map(e -> RecebimentoCompraResponseDTO.fromEntity(e,null)).toList();
   }
 
   @Transactional(readOnly=true)
@@ -37,12 +37,15 @@ public class RecebimentoCompraService {
 
   @Transactional
   public RecebimentoCompraResponseDTO criar(UUID chave, RecebimentoCompraRequestDTO d) {
+    scope.actor(d.idUsuario());
+    scope.store(lockCompra(d.idCompra()).getLoja().getId());
     // Serialize even different purchases sharing a key; the persisted key survives restarts/deletion.
     jdbc.query("select pg_advisory_xact_lock(hashtextextended(?, 0))", rs -> {}, chave.toString());
     String hash = hash(d);
-    var previous = jdbc.queryForList("select request_hash, receipt_id, deleted from recebimento_idempotencia where chave = ?", chave);
+    var previous = jdbc.queryForList("select request_hash, receipt_id, deleted, actor_id from recebimento_idempotencia where chave = ?", chave);
     if (!previous.isEmpty()) {
       var row = previous.getFirst();
+      if(!scope.principal().id().equals(row.get("actor_id")))throw new ResourceNotFoundException("Recurso não encontrado");
       if (!hash.equals(row.get("request_hash"))) throw new ConflictException("Chave reutilizada com outro conteúdo");
       if (Boolean.TRUE.equals(row.get("deleted"))) throw new ConflictException("O rascunho desta chave foi excluído");
       return response(find((UUID)row.get("receipt_id")));
@@ -56,7 +59,7 @@ public class RecebimentoCompraService {
     e.setCriadoEm(OffsetDateTime.now());
     repository.saveAndFlush(e);
     replaceItems(e,d.itens());
-    jdbc.update("insert into recebimento_idempotencia(chave, request_hash, receipt_id) values (?,?,?)", chave, hash, e.getId());
+    jdbc.update("insert into recebimento_idempotencia(chave, request_hash, receipt_id, actor_id) values (?,?,?,?)", chave, hash, e.getId(), scope.principal().id());
     return response(e);
   }
 
@@ -114,22 +117,24 @@ public class RecebimentoCompraService {
       m.setProduto(i.getProduto()); m.setLoja(e.getCompra().getLoja());
       m.setTipo(TipoMovimentacao.ENTRADA_COMPRA); m.setQuantidade(i.getQuantidade());
       m.setDataMovimentacao(e.getDataRecebimento()); m.setObservacao(i.getObservacao());
-      m.setUsuario(e.getUsuario()); m.setCompra(e.getCompra()); m.setItemRecebimentoCompra(i);
+      m.setUsuario(scope.actor()); m.setCompra(e.getCompra()); m.setItemRecebimentoCompra(i);
       movimentos.save(m);
     }
     boolean complete = itemCompraRepository.findByCompraId(e.getCompra().getId()).stream()
       .allMatch(i -> i.getQuantidadeRecebida().compareTo(i.getQuantidade()) == 0);
     e.getCompra().setStatus(complete ? StatusCompra.RECEBIDA : StatusCompra.PARCIALMENTE_RECEBIDA);
+    e.setConfirmador(scope.actor());
+    e.setModificador(scope.actor());
     e.setStatus(StatusDocumento.CONCLUIDO); e.setConcluidoEm(OffsetDateTime.now());
     repository.flush();
     return response(e);
   }
 
   private RecebimentoCompra find(UUID id) {
-    return repository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Recebimento não encontrado"));
+    return repository.findById(id).filter(e -> scope.permits(e.getCompra().getLoja().getId())).orElseThrow(() -> new ResourceNotFoundException("Recebimento não encontrado"));
   }
   private Compra lockCompra(UUID id) {
-    return compraRepository.lockById(id).orElseThrow(() -> new ResourceNotFoundException("Compra não encontrada"));
+    return compraRepository.lockById(id).filter(e -> scope.permits(e.getLoja().getId())).orElseThrow(() -> new ResourceNotFoundException("Compra não encontrada"));
   }
   private RecebimentoCompra lock(UUID id) {
     UUID compra = repository.findCompraIdById(id).orElseThrow(() -> new ResourceNotFoundException("Recebimento não encontrado"));
@@ -147,7 +152,9 @@ public class RecebimentoCompraService {
   }
   private void aplicar(RecebimentoCompra e, RecebimentoCompraRequestDTO d) {
     if (d.status() != StatusDocumento.RASCUNHO) throw new InvalidInputException("Use RASCUNHO; confirmação exige a operação concluir");
-    e.setUsuario(usuarioRepository.findById(d.idUsuario()).orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado")));
+    var actor=scope.actor(d.idUsuario());
+    if(e.getId()==null)e.setUsuario(actor);
+    e.setModificador(actor);
     e.setDataRecebimento(d.dataRecebimento() == null ? OffsetDateTime.now() : d.dataRecebimento());
     e.setObservacao(d.observacao());
   }
@@ -185,7 +192,7 @@ public class RecebimentoCompraService {
   private RecebimentoCompraResponseDTO responseWithCurrentVersion(RecebimentoCompra e) {
     var r = response(e);
     Integer version = jdbc.queryForObject("select versao from recebimento_compra where id = ?",Integer.class,e.getId());
-    return new RecebimentoCompraResponseDTO(r.id(),r.idCompra(),r.idUsuario(),r.status(),r.dataRecebimento(),r.observacao(),version,r.concluidoEm(),r.itens());
+    return new RecebimentoCompraResponseDTO(r.id(),r.idCompra(),r.idUsuario(),r.nomeUsuario(),r.idModificador(),r.nomeModificador(),r.idConfirmador(),r.nomeConfirmador(),r.status(),r.dataRecebimento(),r.observacao(),version,r.concluidoEm(),r.itens());
   }
   private String hash(RecebimentoCompraRequestDTO d) {
     // Length framing, normalized quantities/instants and stable item order form a canonical payload.

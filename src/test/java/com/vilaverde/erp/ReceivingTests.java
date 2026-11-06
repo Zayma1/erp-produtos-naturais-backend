@@ -32,17 +32,30 @@ class ReceivingTests {
   @Autowired RecebimentoCompraService service;
   @Autowired CompraService compras;
   @Autowired MockMvc mvc;
+  @Autowired org.springframework.web.context.WebApplicationContext web;
+  @Autowired com.vilaverde.erp.repository.UsuarioRepository users;
+  org.springframework.security.core.Authentication authentication;
+  @AfterEach void clearSecurity() { org.springframework.security.core.context.SecurityContextHolder.clearContext(); }
+
   UUID loja,usuario,produto,compra,item;
   @BeforeEach void seed() {
     sql.execute("TRUNCATE loja,usuario,categoria,unidade_medida,fornecedor,recebimento_idempotencia CASCADE");
     loja=UUID.randomUUID(); usuario=UUID.randomUUID(); produto=UUID.randomUUID();
     UUID categoria=UUID.randomUUID(), unidade=UUID.randomUUID(), fornecedor=UUID.randomUUID();
     sql.update("insert into loja(id,cnpj,nome_fantasia,razao_social,bairro,cidade,estado,numero,status,criado_em) values (?,'12345678901234','Loja','Loja','B','C','SC','1','ATIVA',now())",loja);
-    sql.update("insert into usuario(id,nome,email,cargo,senha_hash,status,criado_em) values (?,'Operador','op@example.test','Interno','test-only','ATIVO',now())",usuario);
+    sql.update("insert into usuario(id,nome,email,cargo,senha_hash,status,criado_em) values (?,'Operador','op@example.test','ADMIN','test-only','ATIVO',now())",usuario);
     sql.update("insert into categoria values (?,'Categoria')",categoria);
     sql.update("insert into unidade_medida(id,nome,sigla) values (?,'Unidade','UN')",unidade);
     sql.update("insert into produto(id,nome,id_categoria,id_unidade_medida,tipo_venda,status,criado_em) values (?,'Produto',?,?,'UNIDADE','ATIVO',now())",produto,categoria,unidade);
     sql.update("insert into fornecedor(id,nome_fantasia,razao_social,estado,cidade,bairro,status) values (?,'Fornecedor','F','SC','C','B','ATIVO')",fornecedor);
+    sql.update("update usuario set revisado=true,alterar_senha=false where id=?",usuario);
+    var principal=com.vilaverde.erp.security.AuthPrincipal.of(users.findById(usuario).orElseThrow(),false);
+    authentication=org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(principal,null,principal.getAuthorities());
+    org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
+    var session=new org.springframework.mock.web.MockHttpSession();session.setAttribute("authenticatedAt",System.currentTimeMillis());
+    mvc=org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup(web)
+      .apply(org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity())
+      .defaultRequest(get("/").session(session).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication(authentication)).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())).build();
     compra=purchase(fornecedor); item=purchaseItem(compra,produto,"10");
   }
   UUID purchase(UUID fornecedor) {
@@ -129,7 +142,7 @@ class ReceivingTests {
   List<Object> parallel(Callable<?> a,Callable<?> b) throws Exception {
     var start=new CountDownLatch(1); var ready=new CountDownLatch(2);
     try(var pool=Executors.newFixedThreadPool(2)) {
-      var futures=List.of(a,b).stream().map(task->pool.submit(()->{ready.countDown(); start.await(); try {return task.call();} catch (ConflictException e) {return e;} })).toList();
+      var futures=List.of(a,b).stream().map(task->pool.submit(()->{org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication); ready.countDown(); start.await(); try {return task.call();} catch (ConflictException e) {return e;} })).toList();
       assertTrue(ready.await(5,TimeUnit.SECONDS)); start.countDown();
       List<Object> result=new ArrayList<>(); for(var f:futures) result.add(f.get(20,TimeUnit.SECONDS)); return result;
     }
@@ -168,6 +181,20 @@ class ReceivingTests {
     assertEquals(1,sql.queryForObject("select count(*) from estoque_produto",Integer.class));
     assertEquals("RASCUNHO",sql.queryForObject("select status from compra where id=?",String.class,compra));
   }
+  @Test void forgedIdentityAndReplayByDifferentActorAreRejected() {
+    var key=UUID.randomUUID();var d=request(compra,item,"1",null);var receipt=service.criar(key,d);
+    var forged=new RecebimentoCompraRequestDTO(compra,UUID.randomUUID(),null,d.dataRecebimento(),d.status(),d.observacao(),d.itens());
+    assertThrows(org.springframework.security.access.AccessDeniedException.class,()->service.criar(UUID.randomUUID(),forged));
+    UUID second=UUID.randomUUID();sql.update("insert into usuario(id,nome,email,cargo,senha_hash,status,criado_em,revisado,alterar_senha) values (?,'Second','second@example.test','ADMIN','test','ATIVO',now(),true,false)",second);
+    var p=com.vilaverde.erp.security.AuthPrincipal.of(users.findById(second).orElseThrow(),false);
+    org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(p,null,p.getAuthorities()));
+    var replay=new RecebimentoCompraRequestDTO(compra,second,null,d.dataRecebimento(),d.status(),d.observacao(),d.itens());
+    assertThrows(ResourceNotFoundException.class,()->service.criar(key,replay));
+    var changed=new RecebimentoCompraRequestDTO(compra,second,receipt.versao(),d.dataRecebimento(),d.status(),d.observacao(),d.itens());
+    var edited=service.atualizar(receipt.id(),changed);assertEquals(usuario,edited.idUsuario());assertEquals(second,edited.idModificador());
+    var confirmed=service.concluir(edited.id(),edited.versao());assertEquals(second,confirmed.idConfirmador());
+    assertEquals(second,sql.queryForObject("select id_usuario from movimentacao_estoque limit 1",UUID.class));
+  }
   @Test void apiValidationAndErrorShape() throws Exception {
     String base="{\"idCompra\":\""+compra+"\",\"idUsuario\":\""+usuario+"\",\"status\":\"RASCUNHO\",\"itens\":[{\"idItemCompra\":\""+item+"\",\"idProduto\":\""+produto+"\",\"quantidade\":%s}]}";
     for(String q:List.of("0","-1","0.0001","100000000000"))
@@ -175,6 +202,7 @@ class ReceivingTests {
     mvc.perform(post("/api/recebimentos-compras").header("Idempotency-Key",UUID.randomUUID()).contentType("application/json").content(base.formatted("1").replaceFirst("\\[\\{.*\\}\\]", "[null]"))).andExpect(status().isBadRequest());
     mvc.perform(post("/api/recebimentos-compras").contentType("application/json").content(base.formatted("1"))).andExpect(status().isBadRequest());
     mvc.perform(get("/api/recebimentos-compras/"+UUID.randomUUID())).andExpect(status().isNotFound());
+    org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
     var a=draft("1");
     mvc.perform(delete("/api/recebimentos-compras/"+a.id()).param("versao","999")).andExpect(status().isConflict()).andExpect(jsonPath("$.status").value(409));
   }

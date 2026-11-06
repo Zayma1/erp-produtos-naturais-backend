@@ -7,7 +7,7 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface VendaRepository extends JpaRepository<Venda, UUID> {
+public interface VendaRepository extends JpaRepository<Venda, UUID>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<Venda> {
   @Override
   @EntityGraph(
     attributePaths = { "cliente", "usuario", "loja", "itens", "itens.produto" }

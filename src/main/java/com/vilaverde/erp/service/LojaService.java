@@ -14,16 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class LojaService {
+  private final com.vilaverde.erp.security.AccessScope scope;
 
   private final LojaRepository lojaRepository;
 
   @Transactional(readOnly = true)
   public List<LojaResponseDTO> listar() {
-    return lojaRepository
-      .findAll()
-      .stream()
-      .map(LojaResponseDTO::fromEntity)
-      .toList();
+    return scope.rows(lojaRepository,"id").stream().map(LojaResponseDTO::fromEntity).toList();
   }
 
   @Transactional(readOnly = true)
@@ -63,6 +60,7 @@ public class LojaService {
   }
 
   private Loja buscar(UUID id) {
+    scope.store(id);
     return lojaRepository
       .findById(id)
       .orElseThrow(() -> new ResourceNotFoundException("Loja não encontrada"));

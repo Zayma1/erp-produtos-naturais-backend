@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class VendaService {
+  private final com.vilaverde.erp.security.AccessScope scope;
 
   private final VendaRepository vendaRepository;
   private final ClienteRepository clienteRepository;
@@ -40,17 +41,7 @@ public class VendaService {
     UUID idUsuario,
     UUID idLoja
   ) {
-    List<Venda> vendas;
-    if (idCliente != null) {
-      vendas = vendaRepository.findByClienteId(idCliente);
-    } else if (idUsuario != null) {
-      vendas = vendaRepository.findByUsuarioId(idUsuario);
-    } else if (idLoja != null) {
-      vendas = vendaRepository.findByLojaId(idLoja);
-    } else {
-      vendas = vendaRepository.findAll();
-    }
-    return vendas.stream().map(VendaResponseDTO::fromEntity).toList();
+    return scope.rows(vendaRepository,"loja.id").stream().filter(e -> (idCliente==null || (e.getCliente()!=null && e.getCliente().getId().equals(idCliente))) && (idUsuario==null || (e.getUsuario()!=null && e.getUsuario().getId().equals(idUsuario))) && (idLoja==null || e.getLoja().getId().equals(idLoja))).map(VendaResponseDTO::fromEntity).toList();
   }
 
   @Transactional(readOnly = true)
@@ -84,12 +75,12 @@ public class VendaService {
   }
 
   private void aplicarCabecalho(Venda venda, VendaRequestDTO dto) {
+    scope.store(dto.idLoja());
+    var actor=scope.actor(dto.idUsuario());
+    if(venda.getId()==null)venda.setUsuario(actor);
     venda.setDataVenda(dto.dataVenda());
     venda.setCliente(
       dto.idCliente() != null ? buscarCliente(dto.idCliente()) : null
-    );
-    venda.setUsuario(
-      dto.idUsuario() != null ? buscarUsuario(dto.idUsuario()) : null
     );
     venda.setLoja(buscarLoja(dto.idLoja()));
     venda.setObservacao(dto.observacao());
@@ -148,6 +139,7 @@ public class VendaService {
   private Venda buscar(UUID id) {
     return vendaRepository
       .findById(id)
+      .filter(e -> scope.permits(e.getLoja().getId()))
       .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada"));
   }
 

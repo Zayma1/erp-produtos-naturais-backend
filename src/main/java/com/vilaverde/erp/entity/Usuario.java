@@ -33,9 +33,24 @@ public class Usuario {
   @Column(name = "senha_hash", nullable = false)
   private String senhaHash;
 
-  @NotBlank
+  @Enumerated(EnumType.STRING)
   @Column(name = "cargo", nullable = false)
-  private String cargo = "FUNCIONARIO";
+  private com.vilaverde.erp.entity.enums.CargoUsuario cargo = com.vilaverde.erp.entity.enums.CargoUsuario.FUNC;
+
+  @ElementCollection(fetch = FetchType.EAGER)
+  @CollectionTable(name="usuario_loja", joinColumns=@JoinColumn(name="id_usuario"))
+  @Column(name="id_loja", nullable=false)
+  private java.util.Set<UUID> lojas = new java.util.HashSet<>();
+
+  @Column(name="alterar_senha", nullable=false)
+  private boolean alterarSenha = true;
+
+  @Column(name="revisado", nullable=false)
+  private boolean revisado = false;
+
+  @Column(name="auth_version", nullable=false)
+  private long authVersion = 0;
+
 
   @Enumerated(EnumType.STRING)
   @Column(name = "status", nullable = false, length = 20)

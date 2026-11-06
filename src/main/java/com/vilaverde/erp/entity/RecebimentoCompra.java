@@ -13,6 +13,11 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RecebimentoCompra {
+  @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="id_modificador")
+  private Usuario modificador;
+  @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="id_confirmador")
+  private Usuario confirmador;
+
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)

@@ -1,25 +1,9 @@
 package com.vilaverde.erp.dto.usuario;
-
 import com.vilaverde.erp.entity.Usuario;
+import com.vilaverde.erp.entity.enums.*;
 import java.time.OffsetDateTime;
-import java.util.UUID;
-
-public record UsuarioResponseDTO(
-  UUID id,
-  String nome,
-  String email,
-  String cargo,
-  com.vilaverde.erp.entity.enums.StatusCadastro status,
-  OffsetDateTime criadoEm
-) {
-  public static UsuarioResponseDTO fromEntity(Usuario usuario) {
-    return new UsuarioResponseDTO(
-      usuario.getId(),
-      usuario.getNome(),
-      usuario.getEmail(),
-      usuario.getCargo(),
-      usuario.getStatus(),
-      usuario.getCriadoEm()
-    );
-  }
+import java.util.*;
+public record UsuarioResponseDTO(UUID id,String nome,String email,CargoUsuario cargo,StatusCadastro status,
+  OffsetDateTime criadoEm,Set<UUID> lojas,boolean alterarSenha,boolean revisado) {
+  public static UsuarioResponseDTO fromEntity(Usuario u) { return new UsuarioResponseDTO(u.getId(),u.getNome(),u.getEmail(),u.getCargo(),u.getStatus(),u.getCriadoEm(),Set.copyOf(u.getLojas()),u.isAlterarSenha(),u.isRevisado()); }
 }

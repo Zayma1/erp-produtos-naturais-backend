@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class ProdutoPrecoLojaService {
+  private final com.vilaverde.erp.security.AccessScope scope;
 
   private final ProdutoPrecoLojaRepository repository;
   private final ProdutoRepository produtoRepository;
@@ -20,11 +21,7 @@ public class ProdutoPrecoLojaService {
 
   @Transactional(readOnly = true)
   public List<ProdutoPrecoLojaResponseDTO> listar(UUID idProduto, UUID idLoja) {
-    List<ProdutoPrecoLoja> l =
-      idProduto != null && idLoja != null
-        ? repository.findByProdutoIdAndLojaId(idProduto, idLoja)
-        : repository.findAll();
-    return l.stream().map(ProdutoPrecoLojaResponseDTO::fromEntity).toList();
+    return scope.rows(repository,"loja.id").stream().filter(e -> (idProduto==null || e.getProduto().getId().equals(idProduto)) && (idLoja==null || e.getLoja().getId().equals(idLoja))).map(ProdutoPrecoLojaResponseDTO::fromEntity).toList();
   }
 
   @Transactional(readOnly = true)
@@ -32,6 +29,7 @@ public class ProdutoPrecoLojaService {
     return ProdutoPrecoLojaResponseDTO.fromEntity(
       repository
         .findById(id)
+      .filter(candidate -> scope.permits(candidate.getLoja().getId()))
         .orElseThrow(() ->
           new ResourceNotFoundException(
             "Preço do produto na loja não encontrado"
@@ -54,6 +52,7 @@ public class ProdutoPrecoLojaService {
   ) {
     ProdutoPrecoLoja e = repository
       .findById(id)
+      .filter(candidate -> scope.permits(candidate.getLoja().getId()))
       .orElseThrow(() ->
         new ResourceNotFoundException("Preço do produto na loja não encontrado")
       );
@@ -66,6 +65,7 @@ public class ProdutoPrecoLojaService {
     repository.delete(
       repository
         .findById(id)
+      .filter(candidate -> scope.permits(candidate.getLoja().getId()))
         .orElseThrow(() ->
           new ResourceNotFoundException(
             "Preço do produto na loja não encontrado"
@@ -75,6 +75,7 @@ public class ProdutoPrecoLojaService {
   }
 
   private void aplicar(ProdutoPrecoLoja e, ProdutoPrecoLojaRequestDTO d) {
+    scope.store(d.idLoja());
     e.setProduto(
       produtoRepository
         .findById(d.idProduto())

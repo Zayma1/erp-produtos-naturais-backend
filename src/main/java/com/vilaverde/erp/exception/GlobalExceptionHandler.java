@@ -80,6 +80,9 @@ public class GlobalExceptionHandler {
     return ResponseEntity.badRequest().body(new ApiError(400, "Dados inválidos", "Parâmetro, cabeçalho ou JSON inválido"));
   }
 
+  @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+  public ResponseEntity<ApiError> forbidden(Exception ex) { return ResponseEntity.status(403).body(new ApiError(403,"Acesso negado","Operação não permitida")); }
+
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiError> handleGeneric(Exception ex) {
     ApiError error = new ApiError(
