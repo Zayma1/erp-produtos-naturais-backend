@@ -92,7 +92,7 @@ public class AjusteEstoqueService {
      var delta=i.getTipo()==TipoMovimentacao.AJUSTE_ENTRADA ? i.getQuantidade():i.getQuantidade().negate();
      i.setSaldoAntes(balances.get(i.getProduto().getId()));i.setSaldoDepois(i.getSaldoAntes().add(delta));
      jdbc.update("update estoque_produto set quantidade_atual=quantidade_atual+?,atualizado_em=? where id_produto=? and id_loja=?",delta,now,i.getProduto().getId(),store);
-     var m=new MovimentacaoEstoque();m.setAjusteEstoque(t);m.setItemAjusteEstoque(i);m.setProduto(i.getProduto());m.setLoja(t.getLoja());m.setTipo(i.getTipo());m.setQuantidade(i.getQuantidade());m.setUsuario(actor);m.setDataMovimentacao(now);movimentos.save(m);
+     var m=new MovimentacaoEstoque();m.setAjusteEstoque(t);m.setItemAjusteEstoque(i);m.setProduto(i.getProduto());m.setLoja(t.getLoja());m.setTipo(i.getTipo());m.setQuantidade(i.getQuantidade());m.setObservacao(i.getObservacao());m.setUsuario(actor);m.setDataMovimentacao(now);movimentos.save(m);
    }
 
    t.setStatus(StatusDocumento.CONCLUIDO);t.setConfirmador(actor);t.setModificador(actor);t.setConcluidoEm(now);t.setAtualizadoEm(now);
@@ -109,11 +109,13 @@ public class AjusteEstoqueService {
  private void validate(AjusteRequestDTO d) {
    if(d.status()!=null)throw new InvalidInputException("Use concluir/cancelar para alterar status");
    if(d.idLoja()==null || d.justificativa()==null || d.justificativa().isBlank())throw new InvalidInputException("Loja e justificativa obrigatórias");
+   if(d.justificativa().length()>255)throw new InvalidInputException("Justificativa deve ter até 255 caracteres");
    if(d.itens()==null || d.itens().isEmpty())throw new InvalidInputException("Informe itens");
    var products=new HashSet<UUID>();
    for(var i:d.itens()) {
      if(i==null || i.idProduto()==null || !products.add(i.idProduto()))throw new InvalidInputException("Produtos obrigatórios e únicos");
      if(i.tipo()!=TipoMovimentacao.AJUSTE_ENTRADA && i.tipo()!=TipoMovimentacao.AJUSTE_SAIDA)throw new InvalidInputException("Tipo de ajuste inválido");
+     if(i.observacao()!=null && i.observacao().length()>255)throw new InvalidInputException("Observação deve ter até 255 caracteres");
      var q=i.quantidade();if(q==null || q.signum()<=0 || q.scale()>3 || q.compareTo(new BigDecimal("100000000000"))>=0)throw new InvalidInputException("Quantidade positiva numeric(14,3) obrigatória");
    }
  }

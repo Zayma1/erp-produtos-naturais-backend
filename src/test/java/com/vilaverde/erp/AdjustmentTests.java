@@ -117,4 +117,31 @@ class AdjustmentTests {
    assertThrows(ResourceNotFoundException.class,()->adjustments.buscar(a.id()));assertTrue(adjustments.listar(null,null).isEmpty());
    sql.update("update usuario set cargo='FUNC' where id=?",usuario);var employee=com.vilaverde.erp.security.AuthPrincipal.of(users.findById(usuario).orElseThrow(),false);org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(employee,null,employee.getAuthorities()));assertThrows(org.springframework.security.access.AccessDeniedException.class,()->adjustments.buscar(a.id()));
  }
+  List<Object> parallel(Callable<?> a,Callable<?> b) throws Exception {
+    var start=new CountDownLatch(1); var ready=new CountDownLatch(2);
+    try(var pool=Executors.newFixedThreadPool(2)) {
+      var futures=List.of(a,b).stream().map(task->pool.submit(()->{org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication); ready.countDown(); start.await(); try {return task.call();} catch (ConflictException e) {return e;} })).toList();
+      assertTrue(ready.await(5,TimeUnit.SECONDS)); start.countDown();
+      List<Object> result=new ArrayList<>(); for(var f:futures) result.add(f.get(20,TimeUnit.SECONDS)); return result;
+    }
+  }
+ @Test void concurrentWritersAndRepeatedConfirmation() throws Exception {
+   stock(produto,loja,"10");var a=adjustments.criar(UUID.randomUUID(),adjust(null,"1",TipoMovimentacao.AJUSTE_SAIDA));
+   parallel(()->adjustments.concluir(a.id(),0),()->adjustments.concluir(a.id(),0));balance(produto,loja,"9");assertEquals(1,movements());
+   var b=adjustments.criar(UUID.randomUUID(),adjust(null,"6",TipoMovimentacao.AJUSTE_SAIDA));var c=adjustments.criar(UUID.randomUUID(),adjust(null,"6",TipoMovimentacao.AJUSTE_SAIDA));var results=parallel(()->adjustments.concluir(b.id(),0),()->adjustments.concluir(c.id(),0));assertEquals(1,results.stream().filter(ConflictException.class::isInstance).count());balance(produto,loja,"3");
+   var receipt=service.criar(UUID.randomUUID(),new RecebimentoCompraRequestDTO(compra,null,null,null,StatusDocumento.RASCUNHO,null,List.of(new ItemRecebimentoRequestDTO(null,item,produto,new BigDecimal("4"),null))));
+   var d=adjustments.criar(UUID.randomUUID(),adjust(null,"1",TipoMovimentacao.AJUSTE_ENTRADA));parallel(()->adjustments.concluir(d.id(),0),()->service.concluir(receipt.id(),0));balance(produto,loja,"8");
+   var transfer=draft(loja,destino,"2");var e=adjustments.criar(UUID.randomUUID(),adjust(null,"1",TipoMovimentacao.AJUSTE_SAIDA));parallel(()->transfers.concluir(transfer.id(),0),()->adjustments.concluir(e.id(),0));balance(produto,loja,"5");balance(produto,destino,"2");
+   UUID customer=UUID.randomUUID();sql.update("insert into cliente(id,nome,criado_em) values (?,'C',now())",customer);
+   var sale=sales.criar(UUID.randomUUID(),new VendaRequestDTO(null,null,null,customer,null,loja,null,List.of(new ProdutoVendaRequestDTO(null,produto,new BigDecimal("4"),BigDecimal.ONE,BigDecimal.ZERO))));
+   var f=adjustments.criar(UUID.randomUUID(),adjust(null,"4",TipoMovimentacao.AJUSTE_SAIDA));results=parallel(()->adjustments.concluir(f.id(),0),()->sales.concluir(sale.id(),0));assertEquals(1,results.stream().filter(ConflictException.class::isInstance).count());balance(produto,loja,"1");
+ }
+
+ @Test void concurrentCreationIsStableAndFailureRollsBackAudit() throws Exception {
+   var key=UUID.randomUUID();var body=adjust(null,"2",TipoMovimentacao.AJUSTE_ENTRADA);var results=parallel(()->adjustments.criar(key,body),()->adjustments.criar(key,body));assertEquals(((AjusteResponseDTO)results.get(0)).id(),((AjusteResponseDTO)results.get(1)).id());
+   var a=(AjusteResponseDTO)results.getFirst();
+   sql.execute("create function fail_adjustment() returns trigger language plpgsql as $$ begin raise exception 'forced adjustment rollback'; end $$");sql.execute("create trigger fail_adjustment before insert on movimentacao_estoque for each row execute function fail_adjustment()");
+   try {assertThrows(Exception.class,()->adjustments.concluir(a.id(),a.versao()));balance(produto,loja,"0");assertEquals(0,movements());var saved=adjustments.buscar(a.id());assertEquals(a.versao(),saved.versao());assertNull(saved.idConfirmador());assertNull(saved.concluidoEm());assertNull(saved.itens().getFirst().saldoAntes());assertEquals(0,sql.queryForObject("select count(*) from estoque_produto",Integer.class));}
+   finally {sql.execute("drop trigger fail_adjustment on movimentacao_estoque");sql.execute("drop function fail_adjustment()");}
+ }
 }

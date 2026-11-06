@@ -121,4 +121,22 @@ class MigrationTests {
    r=connection.createStatement().executeQuery("select count(*) from movimentacao_estoque");r.next();assertEquals(0,r.getInt(1));
    r=connection.createStatement().executeQuery("select count(*) from estoque_produto");r.next();assertEquals(0,r.getInt(1));
  }
+
+ @Test void v5AdjustmentsStayHistoricalAcrossRestart() throws Exception {
+   salesLegacy("ABERTA",false);Flyway.configure().dataSource(url,"stage7","local-stage7-only").locations("classpath:db/migration").target("5").load().migrate();
+   String id=UUID.randomUUID().toString();var st=connection.createStatement();
+   st.execute("insert into ajuste_estoque(id,id_loja,id_usuario,justificativa,status,criado_em) values ('"+id+"','00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000008','Histórico','CONCLUIDO',now())");
+   flyway().migrate();connection.close();connection=DriverManager.getConnection(url,"stage7","local-stage7-only");flyway().migrate();
+   var r=connection.createStatement().executeQuery("select legado,versao,id_confirmador from ajuste_estoque");assertTrue(r.next());assertTrue(r.getBoolean(1));assertEquals(0,r.getInt(2));assertNull(r.getObject(3));
+   r=connection.createStatement().executeQuery("select count(*) from movimentacao_estoque");r.next();assertEquals(0,r.getInt(1));
+ }
+
+ @Test void incompatibleLegacyAdjustmentRequiresReconciliation() throws Exception {
+   salesLegacy("ABERTA",false);Flyway.configure().dataSource(url,"stage7","local-stage7-only").locations("classpath:db/migration").target("5").load().migrate();
+   String id=UUID.randomUUID().toString();var st=connection.createStatement();
+   st.execute("insert into ajuste_estoque(id,id_loja,id_usuario,justificativa,status,criado_em) values ('"+id+"','00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000008','Histórico','RASCUNHO',now())");
+   st.execute("insert into item_ajuste_estoque(id,id_ajuste_estoque,id_produto,tipo,quantidade) values ('"+UUID.randomUUID()+"','"+id+"','00000000-0000-4000-8000-000000000003','SAIDA_VENDA',1)");
+   assertThrows(Exception.class,()->flyway().migrate());
+   var r=st.executeQuery("select count(*) from information_schema.columns where table_name='ajuste_estoque' and column_name='legado'");r.next();assertEquals(0,r.getInt(1));
+ }
 }
