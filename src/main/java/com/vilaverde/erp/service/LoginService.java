@@ -17,7 +17,7 @@ public class LoginService {
   private final String dummy = new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(12).encode(UUID.randomUUID().toString());
   public record Result(int status, AuthPrincipal principal) {}
   @Transactional public Result login(String email,String password) {
-    email=AuthorizationService.normalize(email);
+    email=AuthorizationService.loginEmail(email);
     jdbc.update("insert into auth_attempt(email,started_at,failures) values (?,now(),0) on conflict do nothing",email);
     var r=jdbc.queryForMap("select * from auth_attempt where email=? for update",email);
     var now=Instant.now();

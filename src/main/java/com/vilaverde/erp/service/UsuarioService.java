@@ -62,8 +62,21 @@ public class UsuarioService {
   }
   @Transactional public void bootstrap(String nome,String email,String senha) {
     lock();if(users.findAll().stream().anyMatch(this::activeAdmin))throw new ConflictException("Já existe administrador ativo");
+    createBootstrap(nome,email,senha,false);
+  }
+  @Transactional public boolean bootstrapDefaultAdmin(String senha) {
+    lock();
+    if(users.findAll().stream().anyMatch(this::activeAdmin))return false;
+    createBootstrap("Administrador",AuthorizationService.DEFAULT_ADMIN_EMAIL,senha,true);
+    return true;
+  }
+  private void createBootstrap(String nome,String email,String senha,boolean automatic) {
     var u=users.findByEmail(AuthorizationService.normalize(email)).orElseGet(Usuario::new);
     revoke(u);u.setNome(nome);u.setEmail(AuthorizationService.normalize(email));u.setCargo(CargoUsuario.ADMIN);u.setStatus(StatusCadastro.ATIVO);u.setRevisado(true);
-    password(u,senha,true);users.save(u);
+    // The requested initial admin/admin credential is the only short-password exception.
+    // Business access remains blocked until it is replaced through the normal password policy.
+    if(automatic && "admin".equals(senha)) {u.setSenhaHash(encoder.encode(senha));u.setAlterarSenha(true);}
+    else password(u,senha,true);
+    users.save(u);
   }
 }

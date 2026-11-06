@@ -33,7 +33,7 @@ Referências: [locks PostgreSQL](https://www.postgresql.org/docs/16/explicit-loc
 
 A base continua sendo `novaVersao` com recebimento. `cargoUsuario` foi inspecionada e adaptada: seus valores `ADMIN`, `GER`, `FUNC` foram mantidos, mas o loader retornava `null`, faltava registro de serviço, a persistência/validação do enum e as authorities estavam incorretas, `findByUuid` era inválido, as rotas continuavam `permitAll` e a senha era gravada em texto puro. A branch também antecede as garantias de recebimento; não foi incorporada integralmente.
 
-Todas as APIs de negócio exigem sessão; não há cadastro público. `GET /api/auth/csrf` cria/retorna a proteção CSRF; envie o token em `X-CSRF-TOKEN` em login, logout e demais escritas. Endpoints: `POST /api/auth/login` (`email`, `senha`), `GET /api/auth/me`, `POST /api/auth/logout`, `POST /api/auth/alterar-senha` (`senhaAtual`, `novaSenha`). O login normaliza e-mail, usa BCrypt (custo 12), limita cinco falhas em 15 minutos por e-mail no PostgreSQL e devolve 429 durante o bloqueio. Mensagem de credencial inválida é genérica. Senhas têm mínimo de 12 caracteres e máximo de 72 bytes UTF-8.
+Todas as APIs de negócio exigem sessão; não há cadastro público. `GET /api/auth/csrf` cria/retorna a proteção CSRF; envie o token em `X-CSRF-TOKEN` em login, logout e demais escritas. Endpoints: `POST /api/auth/login` (`email`, `senha`), `GET /api/auth/me`, `POST /api/auth/logout`, `POST /api/auth/alterar-senha` (`senhaAtual`, `novaSenha`). O login normaliza e-mail, usa BCrypt (custo 12), limita cinco falhas em 15 minutos por e-mail no PostgreSQL e devolve 429 durante o bloqueio. Mensagem de credencial inválida é genérica. Senhas novas têm mínimo de 12 caracteres e máximo de 72 bytes UTF-8; somente a credencial inicial automática `admin` é uma exceção temporária, sem acesso de negócio antes da troca.
 
 Sessões Spring Session JDBC usam o cookie `SESSION`, com expiração de 30 minutos de inatividade e 12 horas desde o login. O identificador gira no login. Troca/reset de senha, desativação e qualquer alteração administrativa invalidam sessões por remoção e versão de autenticação persistida. Senhas temporárias permitem apenas consultar identidade/CSRF, trocar senha ou sair. A troca invalida as sessões; entre novamente com a nova senha. Respostas não incluem hashes.
 
@@ -45,14 +45,18 @@ ADMIN gerencia contas/lojas e todos os dados. GER gerencia catálogo compartilha
 
 V3 preserva IDs e referências; copia cargos antigos para `cargo_legado`, normaliza e-mails, invalida **todas** as senhas anteriores e marca contas como não revisadas. Nenhum cargo antigo concede privilégio ou atribuição automática: o cargo efetivo inicial é FUNC, sem lojas e sem login. Colisões de e-mail normalizado interrompem a migração com os IDs para reconciliação; nunca há fusão de contas. Faça backup e siga o preflight/baseline das migrações anteriores; adicionalmente execute `DATABASE_URL=... bash scripts/auth-preflight.sh` antes de V3. Esse comando é somente leitura. V3 repete a verificação dentro da transação. Não use `ddl-auto=create`.
 
-Depois de migrar, execute o comando local com o mesmo datasource e **sem servidor HTTP**:
+Após migrar, o backend cria automaticamente o primeiro administrador ao iniciar o servidor HTTP se não existir ADMIN ativo/revisado. Não é necessário shell do Render: login **`admin`**, senha temporária **`admin`**. O e-mail interno dessa conta é `admin@vilaverde.local` (também pode ser usado no login). A senha é gravada com BCrypt e deve ser substituída antes de qualquer acesso de negócio. O alias `admin` e esse e-mail usam o mesmo contador de tentativas.
+
+A inicialização usa o mesmo lock PostgreSQL das alterações de contas: réplicas concorrentes criam uma única conta. Se já existir um administrador ativo, não cria outra conta, não altera identidade/senha e não reverte uma senha já substituída após reinício. `BOOTSTRAP_ADMIN_PASSWORD` permite substituir a senha inicial por uma de ao menos 12 caracteres e no máximo 72 bytes UTF-8; `BOOTSTRAP_ADMIN_ENABLED=false` desativa a inicialização automática. Nenhum segredo é impresso nos logs.
+
+O comando interativo continua disponível como alternativa, com o mesmo datasource e **sem servidor HTTP**:
 
 ```bash
 ./mvnw -DskipTests package
 java -jar target/erp-0.0.1-SNAPSHOT.jar --spring.profiles.active=bootstrap-admin --spring.main.web-application-type=none
 ```
 
-O terminal solicita nome/e-mail e senha temporária sem eco. Não há senha padrão, segredo em argumento ou endpoint de bootstrap. Se não existir administrador ativo, o comando cria um ou revisa a conta do e-mail informado, preservando seu ID. Havendo administrador ativo, recusa novo bootstrap. Use então as APIs administrativas para revisar/resetar as demais contas. Nenhuma credencial antiga é aceita como fallback.
+O terminal solicita nome/e-mail e senha temporária sem eco. A alternativa interativa não usa senha padrão nem segredo em argumento; não existe endpoint público de bootstrap. Se não existir administrador ativo, o comando cria um ou revisa a conta do e-mail informado, preservando seu ID. Havendo administrador ativo, recusa novo bootstrap. Use então as APIs administrativas para revisar/resetar as demais contas. Nenhuma credencial antiga é aceita como fallback.
 
 `SESSION_COOKIE_SECURE` é `true` por padrão; use `false` somente em localhost HTTP de desenvolvimento/testes. A aplicação Next relê esse cookie pelo seu proxy de mesma origem; o cookie público é host-only, HttpOnly, SameSite=Lax, Secure fora de localhost. Nunca exponha a URL de banco ou credenciais no frontend.
 

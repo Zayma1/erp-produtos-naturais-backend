@@ -71,6 +71,36 @@ class AuthenticationTests {
     assertEquals(403,a.call("POST","/api/auth/logout",null,false).statusCode());
     assertEquals(201,a.call("POST","/api/categorias",Map.of("nome","Allowed"),true).statusCode());
   }
+  @Autowired com.vilaverde.erp.config.InitialAdminInitializer initializer;
+  @Test void automaticAdminIsHashedForcedToChangeAndNotResetOnRestart() throws Exception {
+    sql.execute("TRUNCATE usuario CASCADE");
+    initializer.run(null);
+    var account=repository.findByEmail(AuthorizationService.DEFAULT_ADMIN_EMAIL).orElseThrow();
+    assertTrue(encoder.matches("admin",account.getSenhaHash()));assertNotEquals("admin",account.getSenhaHash());
+    assertTrue(account.isAlterarSenha());assertEquals(CargoUsuario.ADMIN,account.getCargo());
+    var browser=new Browser();assertEquals(200,browser.login(" ADMIN ","admin").statusCode());
+    assertEquals(403,browser.call("GET","/api/categorias",null,false).statusCode());
+    assertEquals(204,browser.call("POST","/api/auth/alterar-senha",Map.of("senhaAtual","admin","novaSenha",permanent),true).statusCode());
+    var updated=repository.findById(account.getId()).orElseThrow();String hash=updated.getSenhaHash();long version=updated.getAuthVersion();
+    initializer.run(null);initializer.run(null);
+    var unchanged=repository.findById(account.getId()).orElseThrow();assertEquals(hash,unchanged.getSenhaHash());assertEquals(version,unchanged.getAuthVersion());assertFalse(unchanged.isAlterarSenha());
+    browser.csrf=null;assertEquals(401,browser.login("admin","admin").statusCode());assertEquals(200,browser.login("admin",permanent).statusCode());
+    assertEquals(1,repository.count());
+  }
+  @Test void concurrentAutomaticBootstrapsCreateOneAdminAndNeverChangeExistingAdmins() throws Exception {
+    String oldHash=repository.findById(admin).orElseThrow().getSenhaHash();
+    initializer.run(null);assertEquals(oldHash,repository.findById(admin).orElseThrow().getSenhaHash());assertFalse(repository.existsByEmail(AuthorizationService.DEFAULT_ADMIN_EMAIL));
+    sql.execute("TRUNCATE usuario CASCADE");
+    new com.vilaverde.erp.config.InitialAdminInitializer(users,false,"admin").run(null);assertEquals(0,repository.count());
+    assertThrows(com.vilaverde.erp.exception.InvalidInputException.class,()->users.bootstrap("Admin","manual@example.test","admin"));
+    assertEquals(0,repository.count());
+    try(var executor=Executors.newFixedThreadPool(2)) {
+      var gate=new CountDownLatch(1);
+      var tasks=List.of(1,2).stream().map(n->executor.submit(()->{gate.await();return users.bootstrapDefaultAdmin("admin");})).toList();gate.countDown();
+      assertNotEquals(tasks.get(0).get(),tasks.get(1).get());
+    }
+    assertEquals(1,repository.count());
+  }
   @Test void exportAuthenticatedContract() throws Exception {
     var a=authenticated("admin@example.test",admin);var r=a.call("GET","/v3/api-docs",null,false);assertEquals(200,r.statusCode());
     var contract=json.readTree(r.body());
