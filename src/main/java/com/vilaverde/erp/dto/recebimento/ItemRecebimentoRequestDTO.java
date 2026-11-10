@@ -1,13 +1,9 @@
 package com.vilaverde.erp.dto.recebimento;
-
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.util.UUID;
-
 public record ItemRecebimentoRequestDTO(
-  @NotNull UUID idItemCompra,
-  @NotNull UUID idProduto,
-  @NotNull @DecimalMin("0.001") BigDecimal quantidade,
-  String observacao
+  UUID id, @NotNull UUID idItemCompra, @NotNull UUID idProduto,
+  @NotNull @DecimalMin("0.001") @Digits(integer=11, fraction=3) BigDecimal quantidade,
+  @Size(max=255) String observacao
 ) {}

@@ -6,7 +6,7 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ProdutoLojaRepository
-  extends JpaRepository<ProdutoLoja, UUID>
+  extends JpaRepository<ProdutoLoja, UUID>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<ProdutoLoja>
 {
   List<ProdutoLoja> findByProdutoId(UUID idProduto);
 

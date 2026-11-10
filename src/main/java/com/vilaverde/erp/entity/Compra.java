@@ -14,6 +14,9 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Compra {
+  @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="id_modificador")
+  private Usuario modificador;
+
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)

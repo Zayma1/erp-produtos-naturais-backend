@@ -8,12 +8,13 @@ import java.util.List;
 import java.util.UUID;
 
 public record VendaRequestDTO(
+  Integer versao,
+  String status,
   OffsetDateTime dataVenda,
-  UUID idCliente,
+  @NotNull UUID idCliente,
   UUID idUsuario,
   @NotNull(message = "Loja é obrigatória") UUID idLoja,
-  String observacao,
+  @jakarta.validation.constraints.Size(max=255) String observacao,
   @NotEmpty(message = "A venda precisa de ao menos um item")
-  @Valid
-  List<ProdutoVendaRequestDTO> itens
+  List<@NotNull @Valid ProdutoVendaRequestDTO> itens
 ) {}

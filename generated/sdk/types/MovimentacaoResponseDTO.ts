@@ -50,6 +50,7 @@ export type MovimentacaoResponseDTO = {
    * @type string | undefined
    */
   idUsuario?: string;
+  nomeUsuario?: string;
   /**
    * @description
    * Format: `uuid`
@@ -74,4 +75,34 @@ export type MovimentacaoResponseDTO = {
    * @type string | undefined
    */
   idAjusteEstoque?: string;
+  /**
+   * @description
+   * Format: `uuid`
+   * @type string | undefined
+   */
+  idDevolucaoCliente?: string;
+  /**
+   * @description
+   * Format: `uuid`
+   * @type string | undefined
+   */
+  idItemDevolucaoCliente?: string;
+  /**
+   * @description
+   * Format: `uuid`
+   * @type string | undefined
+   */
+  idDevolucaoFornecedor?: string;
+  /**
+   * @description
+   * Format: `uuid`
+   * @type string | undefined
+   */
+  idItemDevolucaoFornecedor?: string;
+  /**
+   * @description
+   * Format: `uuid`
+   * @type string | undefined
+   */
+  idRecebimentoCompra?: string;
 };

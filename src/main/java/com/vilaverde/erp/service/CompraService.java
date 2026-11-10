@@ -15,8 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class CompraService {
+  private final com.vilaverde.erp.security.AccessScope scope;
 
   private final CompraRepository repository;
+  private final RecebimentoCompraRepository recebimentos;
   private final ItemCompraRepository itemRepository;
   private final FornecedorRepository fornecedorRepository;
   private final LojaRepository lojaRepository;
@@ -25,7 +27,7 @@ public class CompraService {
 
   @Transactional(readOnly = true)
   public List<CompraResponseDTO> listar() {
-    return repository.findAll().stream().map(this::response).toList();
+    return scope.rows(repository,"loja.id").stream().map(this::response).toList();
   }
 
   @Transactional(readOnly = true)
@@ -33,6 +35,7 @@ public class CompraService {
     return response(
       repository
         .findById(id)
+        .filter(candidate -> scope.permits(candidate.getLoja().getId()))
         .orElseThrow(() ->
           new ResourceNotFoundException("Compra não encontrada")
         )
@@ -52,10 +55,12 @@ public class CompraService {
   @Transactional
   public CompraResponseDTO atualizar(UUID id, CompraRequestDTO d) {
     Compra e = repository
-      .findById(id)
+      .lockById(id)
+      .filter(candidate -> scope.permits(candidate.getLoja().getId()))
       .orElseThrow(() ->
         new ResourceNotFoundException("Compra não encontrada")
       );
+    if (recebimentos.existsByCompraId(id)) throw new ConflictException("Compra possui recebimentos; exclua os rascunhos antes de editar");
     if (e.getStatus() != StatusCompra.RASCUNHO) throw new BusinessException(
       "Somente compras em rascunho podem ser alteradas"
     );
@@ -69,10 +74,12 @@ public class CompraService {
   @Transactional
   public void excluir(UUID id) {
     Compra e = repository
-      .findById(id)
+      .lockById(id)
+      .filter(candidate -> scope.permits(candidate.getLoja().getId()))
       .orElseThrow(() ->
         new ResourceNotFoundException("Compra não encontrada")
       );
+    if (recebimentos.existsByCompraId(id)) throw new ConflictException("Compra possui recebimentos; exclua os rascunhos antes de editar");
     if (e.getStatus() != StatusCompra.RASCUNHO) throw new BusinessException(
       "Somente compras em rascunho podem ser excluídas"
     );
@@ -80,6 +87,10 @@ public class CompraService {
   }
 
   private void aplicar(Compra e, CompraRequestDTO d) {
+    scope.store(d.idLoja());
+    var actor=scope.actor(d.idUsuario());
+    if(e.getId()==null)e.setUsuario(actor);
+    e.setModificador(actor);
     e.setFornecedor(
       fornecedorRepository
         .findById(d.idFornecedor())
@@ -91,15 +102,6 @@ public class CompraService {
       lojaRepository
         .findById(d.idLoja())
         .orElseThrow(() -> new ResourceNotFoundException("Loja não encontrada"))
-    );
-    e.setUsuario(
-      d.idUsuario() == null
-        ? null
-        : usuarioRepository
-            .findById(d.idUsuario())
-            .orElseThrow(() ->
-              new ResourceNotFoundException("Usuário não encontrado")
-            )
     );
     e.setDataCompra(
       d.dataCompra() == null ? OffsetDateTime.now() : d.dataCompra()

@@ -10,9 +10,10 @@ import java.util.UUID;
 
 public record RecebimentoCompraRequestDTO(
   @NotNull UUID idCompra,
-  UUID idUsuario,
+  @NotNull UUID idUsuario,
+  @jakarta.validation.constraints.PositiveOrZero Integer versao,
   OffsetDateTime dataRecebimento,
   StatusDocumento status,
-  String observacao,
-  @NotEmpty @Valid List<ItemRecebimentoRequestDTO> itens
+  @jakarta.validation.constraints.Size(max=255) String observacao,
+  @NotEmpty List<@NotNull @Valid ItemRecebimentoRequestDTO> itens
 ) {}

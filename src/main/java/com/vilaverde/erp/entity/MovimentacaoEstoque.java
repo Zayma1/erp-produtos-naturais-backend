@@ -15,6 +15,10 @@ import lombok.*;
 @AllArgsConstructor
 public class MovimentacaoEstoque {
 
+  @ManyToOne(fetch=FetchType.LAZY)
+  @JoinColumn(name="id_item_transferencia")
+  private ItemTransferencia itemTransferencia;
+
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;

@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class EstoqueService {
+  private final com.vilaverde.erp.security.AccessScope scope;
 
   private final EstoqueProdutoRepository estoqueProdutoRepository;
   private final ProdutoRepository produtoRepository;
@@ -26,20 +27,7 @@ public class EstoqueService {
 
   @Transactional(readOnly = true)
   public List<EstoqueResponseDTO> listar(UUID idProduto, UUID idLoja) {
-    List<EstoqueProduto> movimentacoes;
-    if (idProduto != null && idLoja != null) {
-      movimentacoes = estoqueProdutoRepository.findByProdutoIdAndLojaId(
-        idProduto,
-        idLoja
-      );
-    } else if (idProduto != null) {
-      movimentacoes = estoqueProdutoRepository.findByProdutoId(idProduto);
-    } else if (idLoja != null) {
-      movimentacoes = estoqueProdutoRepository.findByLojaId(idLoja);
-    } else {
-      movimentacoes = estoqueProdutoRepository.findAll();
-    }
-    return movimentacoes.stream().map(EstoqueResponseDTO::fromEntity).toList();
+    return scope.rows(estoqueProdutoRepository,"loja.id").stream().filter(e -> (idProduto==null || e.getProduto().getId().equals(idProduto)) && (idLoja==null || e.getLoja().getId().equals(idLoja))).map(EstoqueResponseDTO::fromEntity).toList();
   }
 
   @Transactional(readOnly = true)
@@ -47,6 +35,7 @@ public class EstoqueService {
     return EstoqueResponseDTO.fromEntity(
       estoqueProdutoRepository
         .findById(id)
+      .filter(e -> scope.permits(e.getLoja().getId()))
         .orElseThrow(() ->
           new ResourceNotFoundException("Registro de estoque não encontrado")
         )
@@ -73,6 +62,7 @@ public class EstoqueService {
   }
 
   private Loja buscarLoja(UUID id) {
+    scope.store(id);
     return lojaRepository
       .findById(id)
       .orElseThrow(() -> new ResourceNotFoundException("Loja não encontrada"));

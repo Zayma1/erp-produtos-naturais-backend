@@ -3,11 +3,11 @@
 * Do not edit manually.
 */
 
-import type { UseMutationOptions, UseMutationResult, QueryClient } from '@tanstack/react-query'
 import type { RequestConfig, ResponseErrorConfig } from '../.kubb/client'
 import type { CriarDevolucaoFornecedorOptions, CriarDevolucaoFornecedorStatus200 } from '../types/CriarDevolucaoFornecedor'
-import { mutationOptions, useMutation } from '@tanstack/react-query'
+import type { UseMutationOptions, UseMutationResult, QueryClient } from '@tanstack/react-query'
 import { criarDevolucaoFornecedor } from '../clients/criarDevolucaoFornecedor'
+import { mutationOptions, useMutation } from '@tanstack/react-query'
 
 export const criarDevolucaoFornecedorMutationKey = () => [{ url: '/api/devolucoes-fornecedores' }] as const
 
@@ -15,8 +15,8 @@ export function criarDevolucaoFornecedorMutationOptions<TContext = unknown>(conf
   const mutationKey = criarDevolucaoFornecedorMutationKey()
   return mutationOptions<CriarDevolucaoFornecedorStatus200, ResponseErrorConfig<Error>, CriarDevolucaoFornecedorOptions, TContext>({
     mutationKey,
-    mutationFn: async({ body }) => {
-      return criarDevolucaoFornecedor({ ...config, body, throwOnError: true }).unwrap()
+    mutationFn: async({ body, headers }) => {
+      return criarDevolucaoFornecedor({ ...config, body, headers, throwOnError: true }).unwrap()
     },
   })
 }

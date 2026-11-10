@@ -3,11 +3,11 @@
 * Do not edit manually.
 */
 
-import type { UseMutationOptions, UseMutationResult, QueryClient } from '@tanstack/react-query'
 import type { RequestConfig, ResponseErrorConfig } from '../.kubb/client'
 import type { CriarTransferenciaEstoqueOptions, CriarTransferenciaEstoqueStatus200 } from '../types/CriarTransferenciaEstoque'
-import { mutationOptions, useMutation } from '@tanstack/react-query'
+import type { UseMutationOptions, UseMutationResult, QueryClient } from '@tanstack/react-query'
 import { criarTransferenciaEstoque } from '../clients/criarTransferenciaEstoque'
+import { mutationOptions, useMutation } from '@tanstack/react-query'
 
 export const criarTransferenciaEstoqueMutationKey = () => [{ url: '/api/transferencias-estoque' }] as const
 
@@ -15,8 +15,8 @@ export function criarTransferenciaEstoqueMutationOptions<TContext = unknown>(con
   const mutationKey = criarTransferenciaEstoqueMutationKey()
   return mutationOptions<CriarTransferenciaEstoqueStatus200, ResponseErrorConfig<Error>, CriarTransferenciaEstoqueOptions, TContext>({
     mutationKey,
-    mutationFn: async({ body }) => {
-      return criarTransferenciaEstoque({ ...config, body, throwOnError: true }).unwrap()
+    mutationFn: async({ body, headers }) => {
+      return criarTransferenciaEstoque({ ...config, body, headers, throwOnError: true }).unwrap()
     },
   })
 }

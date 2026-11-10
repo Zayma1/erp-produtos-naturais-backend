@@ -48,7 +48,7 @@ public class Loja {
   private String complemento;
 
   @NotBlank(message = "CNPJ é obrigatório")
-  @Column(name = "cnpj", nullable = false, length = 14)
+  @Column(name = "cnpj", nullable = false, length = 18)
   private String cnpj;
 
   private String logradouro;

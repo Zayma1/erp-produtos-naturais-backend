@@ -14,6 +14,10 @@ import lombok.*;
 @AllArgsConstructor
 public class ItemAjusteEstoque {
 
+  @Column(name="unidade_sigla_snapshot") private String unidadeSiglaSnapshot;
+  @Column(name="saldo_antes",precision=14, scale=3) private BigDecimal saldoAntes;
+  @Column(name="saldo_depois",precision=14, scale=3) private BigDecimal saldoDepois;
+
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;

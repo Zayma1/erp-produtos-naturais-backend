@@ -1,6 +1,5 @@
 package com.vilaverde.erp.entity;
 
-import com.vilaverde.erp.entity.enums.CargoUsuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import java.time.OffsetDateTime;
@@ -9,13 +8,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.jspecify.annotations.Nullable;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-
-import java.util.Collection;
-import java.util.List;
 
 @Entity
 @Table(name = "usuario")
@@ -23,7 +15,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Usuario implements UserDetails {
+public class Usuario {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -42,60 +34,29 @@ public class Usuario implements UserDetails {
   private String senhaHash;
 
   @Enumerated(EnumType.STRING)
+  @Column(name = "cargo", nullable = false)
+  private com.vilaverde.erp.entity.enums.CargoUsuario cargo = com.vilaverde.erp.entity.enums.CargoUsuario.FUNC;
+
+  @ElementCollection(fetch = FetchType.EAGER)
+  @CollectionTable(name="usuario_loja", joinColumns=@JoinColumn(name="id_usuario"))
+  @Column(name="id_loja", nullable=false)
+  private java.util.Set<UUID> lojas = new java.util.HashSet<>();
+
+  @Column(name="alterar_senha", nullable=false)
+  private boolean alterarSenha = true;
+
+  @Column(name="revisado", nullable=false)
+  private boolean revisado = false;
+
+  @Column(name="auth_version", nullable=false)
+  private long authVersion = 0;
+
+
+  @Enumerated(EnumType.STRING)
   @Column(name = "status", nullable = false, length = 20)
   private com.vilaverde.erp.entity.enums.StatusCadastro status =
     com.vilaverde.erp.entity.enums.StatusCadastro.ATIVO;
 
   @Column(name = "criado_em", nullable = false)
   private OffsetDateTime criadoEm = OffsetDateTime.now();
-    @NotBlank
-    @Column(name = "cargo", nullable = false)
-    private CargoUsuario cargo = CargoUsuario.FUNC;
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        if(this.cargo == CargoUsuario.ADMIN)
-            return List.of(
-                    new SimpleGrantedAuthority("ROLE_ADMIN"),
-                    new SimpleGrantedAuthority("ROLE_MENAGER"),
-                    new SimpleGrantedAuthority("ROLE_USER")
-            );
-        else if(this.cargo == CargoUsuario.GER)
-            return List.of(
-                    new SimpleGrantedAuthority("ROLE_MENAGER"),
-                    new SimpleGrantedAuthority("ROLE_USER")
-            );
-        else
-            return List.of (new SimpleGrantedAuthority("ROLE_USER"));
-    }
-
-    @Override
-    public @Nullable String getPassword() {
-        return this.senhaHash;
-    }
-
-    @Override
-    public String getUsername() {
-        return nome;
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return UserDetails.super.isAccountNonExpired();
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return UserDetails.super.isAccountNonLocked();
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return UserDetails.super.isCredentialsNonExpired();
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return UserDetails.super.isEnabled();
-    }
 }

@@ -3,11 +3,11 @@
 * Do not edit manually.
 */
 
-import type { UseMutationOptions, UseMutationResult, QueryClient } from '@tanstack/react-query'
 import type { RequestConfig, ResponseErrorConfig } from '../.kubb/client'
 import type { CriarDevolucaoClienteOptions, CriarDevolucaoClienteStatus200 } from '../types/CriarDevolucaoCliente'
-import { mutationOptions, useMutation } from '@tanstack/react-query'
+import type { UseMutationOptions, UseMutationResult, QueryClient } from '@tanstack/react-query'
 import { criarDevolucaoCliente } from '../clients/criarDevolucaoCliente'
+import { mutationOptions, useMutation } from '@tanstack/react-query'
 
 export const criarDevolucaoClienteMutationKey = () => [{ url: '/api/devolucoes-clientes' }] as const
 
@@ -15,8 +15,8 @@ export function criarDevolucaoClienteMutationOptions<TContext = unknown>(config:
   const mutationKey = criarDevolucaoClienteMutationKey()
   return mutationOptions<CriarDevolucaoClienteStatus200, ResponseErrorConfig<Error>, CriarDevolucaoClienteOptions, TContext>({
     mutationKey,
-    mutationFn: async({ body }) => {
-      return criarDevolucaoCliente({ ...config, body, throwOnError: true }).unwrap()
+    mutationFn: async({ body, headers }) => {
+      return criarDevolucaoCliente({ ...config, body, headers, throwOnError: true }).unwrap()
     },
   })
 }

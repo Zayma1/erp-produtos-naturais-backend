@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public record ItemTransferenciaRequestDTO(
+  UUID id,
   @NotNull UUID idProduto,
   @NotNull @DecimalMin("0.001") BigDecimal quantidade
 ) {}

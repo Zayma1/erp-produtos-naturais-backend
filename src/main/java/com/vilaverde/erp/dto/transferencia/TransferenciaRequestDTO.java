@@ -15,5 +15,6 @@ public record TransferenciaRequestDTO(
   OffsetDateTime dataTransferencia,
   StatusDocumento status,
   String observacao,
+  Integer versao,
   @NotEmpty @Valid List<ItemTransferenciaRequestDTO> itens
 ) {}

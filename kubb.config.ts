@@ -3,12 +3,12 @@ import { pluginAxios } from '@kubb/plugin-axios'
 import { pluginReactQuery } from '@kubb/plugin-react-query'
 import { pluginTs } from '@kubb/plugin-ts'
 
-const apiUrl = 'https://erp-produtos-naturais-backend.onrender.com'
+const apiUrl = ''
 const openApiUrl = `${apiUrl}/v3/api-docs`
 
 export default defineConfig({
   name: 'erp-produtos-naturais-sdk',
-  input: openApiUrl,
+  input: process.env.OPENAPI_FILE || openApiUrl,
   output: {
     path: './generated/sdk',
     clean: true,

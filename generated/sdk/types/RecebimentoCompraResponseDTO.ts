@@ -3,6 +3,8 @@
 * Do not edit manually.
 */
 
+import type { ItemRecebimentoResponseDTO } from './ItemRecebimentoResponseDTO'
+
 export const recebimentoCompraResponseDTOStatusEnum = {
   RASCUNHO: 'RASCUNHO',
   CONCLUIDO: 'CONCLUIDO',
@@ -32,6 +34,21 @@ export type RecebimentoCompraResponseDTO = {
    * @type string | undefined
    */
   idUsuario?: string;
+  nomeUsuario?: string;
+  /**
+   * @description
+   * Format: `uuid`
+   * @type string | undefined
+   */
+  idModificador?: string;
+  nomeModificador?: string;
+  /**
+   * @description
+   * Format: `uuid`
+   * @type string | undefined
+   */
+  idConfirmador?: string;
+  nomeConfirmador?: string;
   status?: RecebimentoCompraResponseDTOStatusEnumKey;
   /**
    * @description
@@ -40,4 +57,17 @@ export type RecebimentoCompraResponseDTO = {
    */
   dataRecebimento?: string;
   observacao?: string;
+  /**
+   * @description
+   * Format: `int32`
+   * @type integer | undefined
+   */
+  versao?: number;
+  /**
+   * @description
+   * Format: `date-time`
+   * @type string | undefined
+   */
+  concluidoEm?: string;
+  itens?: ItemRecebimentoResponseDTO[];
 };
