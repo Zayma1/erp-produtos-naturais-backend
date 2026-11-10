@@ -62,11 +62,7 @@ public class ProdutoService {
   private void aplicar(Produto produto, ProdutoRequestDTO dto) {
     produto.setNome(dto.nome());
     produto.setCategoria(buscarTipo(dto.idCategoria()));
-    produto.setUnidadeMedida(buscarUnidade(dto.idUnidadeMedida()));
     produto.setDescricao(dto.descricao());
-    produto.setTipoVenda(
-      dto.tipoVenda() != null ? dto.tipoVenda() : TipoVenda.UNIDADE
-    );
     produto.setStatus(
       dto.status() != null ? dto.status() : StatusProduto.ATIVO
     );

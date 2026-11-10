@@ -22,7 +22,7 @@ class MigrationTests {
     if(connection!=null) connection.close();
     try(var c=DriverManager.getConnection(admin,"stage7","local-stage7-only")) { c.createStatement().execute("drop database "+name+" with (force)"); }
   }
-  Flyway flyway() { return Flyway.configure().dataSource(url,"stage7","local-stage7-only").baselineOnMigrate(false).locations("classpath:db/migration").load(); }
+  Flyway flyway() { return Flyway.configure().dataSource(url,"stage7","local-stage7-only").baselineOnMigrate(false).target("7").locations("classpath:db/migration").load(); }
   void legacy() { new ResourceDatabasePopulator(new ClassPathResource("db/migration/V1__legacy_schema.sql")).execute(new SingleConnectionDataSource(connection,true)); }
   @Test void emptyDatabaseAndReconnectRetainOperationalData() throws Exception {
     flyway().migrate();
@@ -154,5 +154,16 @@ class MigrationTests {
   r=connection.createStatement().executeQuery("select devolucao_cliente_legada('00000000-0000-4000-8000-000000000005'),devolucao_cliente_quantidade('00000000-0000-4000-8000-000000000006'),devolucao_fornecedor_legada('00000000-0000-4000-8000-000000000010')");r.next();assertTrue(r.getBoolean(1));assertEquals(0,r.getBigDecimal(2).signum());assertTrue(r.getBoolean(3));
   r=connection.createStatement().executeQuery("select count(*) from movimentacao_estoque");r.next();assertEquals(0,r.getInt(1));
   r=connection.createStatement().executeQuery("select quantidade,retorna_ao_estoque from item_devolucao_cliente where id='"+i+"'");r.next();assertEquals(1,r.getInt(1));assertFalse(r.getBoolean(2));
+ }
+
+ Flyway v8() {return Flyway.configure().dataSource(url,"stage7","local-stage7-only").locations("classpath:db/migration").load();}
+ @Test void stage13EmptyInstallAndReconnect() throws Exception {
+  v8().migrate();connection.close();connection=DriverManager.getConnection(url,"stage7","local-stage7-only");v8().migrate();
+  var rs=connection.createStatement().executeQuery("select count(*) from information_schema.columns where table_name='produto_sku' and column_name in ('id_unidade_medida','tipo_venda')");rs.next();assertEquals(2,rs.getInt(1));
+ }
+ @Test void stage13RejectsCommercialDataWithoutMapping() throws Exception {
+  salesLegacy("ABERTA",false);flyway().migrate();
+  var ex=assertThrows(org.flywaydb.core.api.FlywayException.class,()->v8().migrate());assertTrue(ex.getMessage().contains("V8 exige base sem dados comerciais antigos"));
+  var rs=connection.createStatement().executeQuery("select count(*) from produto_venda");rs.next();assertEquals(1,rs.getInt(1));
  }
 }

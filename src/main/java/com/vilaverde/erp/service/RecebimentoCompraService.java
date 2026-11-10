@@ -103,18 +103,18 @@ public class RecebimentoCompraService {
     // PostgreSQL ON CONFLICT increments the latest committed balance, also across purchases.
     // A global product ordering avoids deadlocks when receipts contain multiple products.
     var ordered = new ArrayList<>(itens);
-    ordered.sort(Comparator.comparing(i -> i.getProduto().getId().toString()));
+    ordered.sort(Comparator.comparing(i -> i.getProdutoSku().getId().toString()));
     for (var i : ordered) {
       jdbc.update("""
-        insert into estoque_produto(id,id_produto,id_loja,quantidade_atual,atualizado_em)
-        values (?,?,?,?,?) on conflict (id_produto,id_loja) do update
+        insert into estoque_produto(id,id_produto_sku,id_loja,quantidade_atual,atualizado_em)
+        values (?,?,?,?,?) on conflict (id_produto_sku,id_loja) do update
         set quantidade_atual = estoque_produto.quantidade_atual + excluded.quantidade_atual,
             atualizado_em = excluded.atualizado_em
-        """, UUID.randomUUID(),i.getProduto().getId(),e.getCompra().getLoja().getId(),i.getQuantidade(),OffsetDateTime.now());
+        """, UUID.randomUUID(),i.getProdutoSku().getId(),e.getCompra().getLoja().getId(),i.getQuantidade(),OffsetDateTime.now());
       var item = i.getItemCompra();
       item.setQuantidadeRecebida(item.getQuantidadeRecebida().add(i.getQuantidade()));
       MovimentacaoEstoque m = new MovimentacaoEstoque();
-      m.setProduto(i.getProduto()); m.setLoja(e.getCompra().getLoja());
+      m.setProdutoSku(i.getProdutoSku()); m.snapshotFrom(i); m.setLoja(e.getCompra().getLoja());
       m.setTipo(TipoMovimentacao.ENTRADA_COMPRA); m.setQuantidade(i.getQuantidade());
       m.setDataMovimentacao(e.getDataRecebimento()); m.setObservacao(i.getObservacao());
       m.setUsuario(scope.actor()); m.setCompra(e.getCompra()); m.setItemRecebimentoCompra(i);
@@ -171,14 +171,14 @@ public class RecebimentoCompraService {
     for (var d : itens) {
       if (!seen.add(d.idItemCompra())) throw new InvalidInputException("Item de compra duplicado");
       var purchaseItem = itemCompraRepository.findById(d.idItemCompra()).orElseThrow(() -> new ResourceNotFoundException("Item de compra não encontrado"));
-      if (!purchaseItem.getCompra().getId().equals(e.getCompra().getId()) || !purchaseItem.getProduto().getId().equals(d.idProduto()))
+      if (!purchaseItem.getCompra().getId().equals(e.getCompra().getId()) || !purchaseItem.getProdutoSku().getId().equals(d.idProdutoSku()))
         throw new InvalidInputException("Item/produto não pertence à compra");
       remaining(purchaseItem,d.quantidade());
       ItemRecebimentoCompra i = d.id() == null ? byPurchaseItem.get(d.idItemCompra()) : byId.get(d.id());
       if (d.id() != null && (i == null || !i.getItemCompra().getId().equals(d.idItemCompra())))
         throw new InvalidInputException("ID de item não pertence a este recebimento/item de compra");
       if (i == null) i = new ItemRecebimentoCompra();
-      i.setRecebimentoCompra(e); i.setItemCompra(purchaseItem); i.setProduto(purchaseItem.getProduto());
+      i.setRecebimentoCompra(e); i.setItemCompra(purchaseItem); i.setProdutoSku(purchaseItem.getProdutoSku()); i.snapshotFrom(purchaseItem);
       i.setQuantidade(d.quantidade()); i.setObservacao(d.observacao());
       itemRepository.save(i); retained.add(i.getId());
     }
@@ -200,7 +200,7 @@ public class RecebimentoCompraService {
     append(s,d.idCompra()); append(s,d.idUsuario()); append(s,d.versao()); append(s,d.status());
     append(s,d.dataRecebimento() == null ? null : d.dataRecebimento().toInstant()); append(s,d.observacao());
     d.itens().stream().sorted(Comparator.comparing(i -> i.idItemCompra().toString())).forEach(i -> {
-      append(s,i.id()); append(s,i.idItemCompra()); append(s,i.idProduto());
+      append(s,i.id()); append(s,i.idItemCompra()); append(s,i.idProdutoSku());
       append(s,i.quantidade().stripTrailingZeros().toPlainString()); append(s,i.observacao());
     });
     try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(s.toString().getBytes(StandardCharsets.UTF_8))); }

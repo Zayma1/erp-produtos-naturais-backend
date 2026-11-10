@@ -50,7 +50,7 @@ class ReturnsTests {
     sql.update("insert into usuario(id,nome,email,cargo,senha_hash,status,criado_em) values (?,'Operador','op@example.test','ADMIN','test-only','ATIVO',now())",usuario);
     sql.update("insert into categoria values (?,'Categoria')",categoria);
     sql.update("insert into unidade_medida(id,nome,sigla) values (?,'Unidade','UN')",unidade);
-    sql.update("insert into produto(id,nome,id_categoria,id_unidade_medida,tipo_venda,status,criado_em) values (?,'Produto',?,?,'UNIDADE','ATIVO',now())",produto,categoria,unidade);
+    SkuFixtures.create(sql,produto,categoria,unidade,"Produto");
     sql.update("insert into fornecedor(id,nome_fantasia,razao_social,estado,cidade,bairro,status) values (?,'Fornecedor','F','SC','C','B','ATIVO')",fornecedor);
     sql.update("update usuario set revisado=true,alterar_senha=false where id=?",usuario);
     var principal=com.vilaverde.erp.security.AuthPrincipal.of(users.findById(usuario).orElseThrow(),false);
@@ -68,7 +68,7 @@ class ReturnsTests {
   }
   UUID purchaseItem(UUID compra,UUID produto,String q) {
     UUID id=UUID.randomUUID();
-    sql.update("insert into item_compra(id,id_compra,id_produto,quantidade,quantidade_recebida,custo_unitario,desconto,total_item) values (?,?,?,?,0,10,0,100)",id,compra,produto,new BigDecimal(q)); return id;
+    sql.update("insert into item_compra(id,id_compra,id_produto_sku,quantidade,quantidade_recebida,custo_unitario,desconto,total_item) values (?,?,?,?,0,10,0,100)",id,compra,produto,new BigDecimal(q)); return id;
   }
 
  @Autowired TransferenciaEstoqueService transfers;
@@ -78,14 +78,14 @@ class ReturnsTests {
  ItemTransferenciaRequestDTO row(UUID id,UUID p,String q) {return new ItemTransferenciaRequestDTO(id,p,new BigDecimal(q));}
  TransferenciaRequestDTO request(UUID a,UUID b,Integer v,List<ItemTransferenciaRequestDTO> rows) {return new TransferenciaRequestDTO(a,b,null,null,null,"Obs",v,rows);}
  TransferenciaResponseDTO draft(UUID a,UUID b,String q) {return transfers.criar(UUID.randomUUID(),request(a,b,null,List.of(row(null,produto,q))));}
- void stock(UUID p,UUID l,String q) {sql.update("insert into estoque_produto(id,id_produto,id_loja,quantidade_atual,atualizado_em) values (?,?,?,?,now()) on conflict(id_produto,id_loja) do update set quantidade_atual=excluded.quantidade_atual",UUID.randomUUID(),p,l,new BigDecimal(q));}
- void balance(UUID p,UUID l,String n) {assertEquals(0,new BigDecimal(n).compareTo(sql.queryForObject("select coalesce(sum(quantidade_atual),0) from estoque_produto where id_produto=? and id_loja=?",BigDecimal.class,p,l)));}
+ void stock(UUID p,UUID l,String q) {sql.update("insert into estoque_produto(id,id_produto_sku,id_loja,quantidade_atual,atualizado_em) values (?,?,?,?,now()) on conflict(id_produto_sku,id_loja) do update set quantidade_atual=excluded.quantidade_atual",UUID.randomUUID(),p,l,new BigDecimal(q));}
+ void balance(UUID p,UUID l,String n) {assertEquals(0,new BigDecimal(n).compareTo(sql.queryForObject("select coalesce(sum(quantidade_atual),0) from estoque_produto where id_produto_sku=? and id_loja=?",BigDecimal.class,p,l)));}
  long movements() {return sql.queryForObject("select count(*) from movimentacao_estoque",Long.class);}
 
 
  @Autowired DevolucaoClienteService customers;
  @Autowired DevolucaoFornecedorService suppliers;
- @Test void exportOpenApi() throws Exception {java.nio.file.Files.writeString(java.nio.file.Path.of("openapi-stage12.json"),mvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());}
+ @Test void exportOpenApi() throws Exception {java.nio.file.Files.writeString(java.nio.file.Path.of("openapi-stage13.json"),mvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());}
  VendaResponseDTO sale(String q,boolean complete) {
   UUID customer=UUID.randomUUID();sql.update("insert into cliente(id,nome,criado_em) values (?,'Cliente',now())",customer);
   var e=sales.criar(UUID.randomUUID(),new VendaRequestDTO(null,null,null,customer,null,loja,null,List.of(new ProdutoVendaRequestDTO(null,produto,new BigDecimal(q),BigDecimal.ONE,BigDecimal.ZERO))));
@@ -119,7 +119,7 @@ class ReturnsTests {
  }
  @Test void supplierReturnsRequireReceivedAllowanceAndStockPreserveReceipt() {
   receive("8");var before=compras.buscar(compra);var d=suppliers.criar(UUID.randomUUID(),supplier(null,srow(null,item,"3")));var id=d.itens().getFirst().id();d=suppliers.atualizar(d.id(),supplier(d.versao(),srow(id,item,"4")));assertEquals(id,d.itens().getFirst().id());
-  var done=suppliers.concluir(d.id(),d.versao());balance(produto,loja,"4");suppliers.concluir(d.id(),0);balance(produto,loja,"4");assertEquals("UNIDADE_NA_CRIACAO_DEVOLUCAO",done.itens().getFirst().unidadeOrigem());
+  var done=suppliers.concluir(d.id(),d.versao());balance(produto,loja,"4");suppliers.concluir(d.id(),0);balance(produto,loja,"4");assertEquals("COMPRA",done.itens().getFirst().unidadeOrigem());
   var after=compras.buscar(compra);assertEquals(before.status(),after.status());assertEquals(before.valorTotal(),after.valorTotal());assertEquals(before.itens().getFirst().quantidadeRecebida(),after.itens().getFirst().quantidadeRecebida());assertEquals(0,new BigDecimal("4").compareTo(after.itens().getFirst().quantidadeDevolvivel()));
   var over=suppliers.criar(UUID.randomUUID(),supplier(null,srow(null,item,"4.001")));assertThrows(ConflictException.class,()->suppliers.concluir(over.id(),0));
   stock(produto,loja,"1");var shortStock=suppliers.criar(UUID.randomUUID(),supplier(null,srow(null,item,"2")));long movements=movements();assertThrows(ConflictException.class,()->suppliers.concluir(shortStock.id(),0));assertEquals(movements,movements());assertEquals(StatusDocumento.RASCUNHO,suppliers.buscar(shortStock.id()).status());balance(produto,loja,"1");
@@ -180,8 +180,74 @@ class ReturnsTests {
   var c=suppliers.criar(UUID.randomUUID(),supplier(null,srow(null,item,"1.125")));suppliers.concluir(c.id(),0);balance(produto,loja,"12.875");assertEquals(0,new BigDecimal("0.875").compareTo(compras.buscar(compra).itens().getFirst().quantidadeDevolvivel()));
  }
  @Test void oneInsufficientProductLeavesEverySupplierItemAndAuditUnchanged() {
-  UUID second=UUID.randomUUID();sql.update("insert into produto(id,nome,id_categoria,id_unidade_medida,tipo_venda,status,criado_em) select ?,'Segundo',id_categoria,id_unidade_medida,tipo_venda,status,now() from produto where id=?",second,produto);UUID secondItem=purchaseItem(compra,second,"10");
+  UUID second=UUID.randomUUID();SkuFixtures.cloneSku(sql,second,produto,"Segundo");UUID secondItem=purchaseItem(compra,second,"10");
   var receipt=service.criar(UUID.randomUUID(),new RecebimentoCompraRequestDTO(compra,usuario,null,null,StatusDocumento.RASCUNHO,null,List.of(new ItemRecebimentoRequestDTO(null,item,produto,new BigDecimal("5"),null),new ItemRecebimentoRequestDTO(null,secondItem,second,new BigDecimal("5"),null))));service.concluir(receipt.id(),0);stock(second,loja,"0");
   var d=suppliers.criar(UUID.randomUUID(),supplier(null,srow(null,item,"1"),new ItemDevolucaoFornecedorRequestDTO(null,secondItem,second,BigDecimal.ONE,null)));long n=movements();assertThrows(ConflictException.class,()->suppliers.concluir(d.id(),0));balance(produto,loja,"5");balance(second,loja,"0");assertEquals(n,movements());var after=suppliers.buscar(d.id());assertEquals(d.versao(),after.versao());assertEquals(StatusDocumento.RASCUNHO,after.status());assertNull(after.concluidoEm());assertNull(after.idConfirmador());assertTrue(compras.buscar(compra).itens().stream().allMatch(i->i.quantidadeDevolvida().signum()==0));
+ }
+
+ @Autowired ProdutoSkuService skus;
+ @Autowired EstoqueService stocks;
+ @Autowired MovimentacaoEstoqueService history;
+ UUID variant(String code,String type) {
+  UUID id=UUID.randomUUID();
+  sql.update("insert into produto_sku(id,id_produto,id_unidade_medida,tipo_venda,status,sku,descricao_apresentacao,criado_em) select ?,id_produto,id_unidade_medida,?,'ATIVO',?,?,now() from produto_sku where id=?",id,type,code,"Pacote "+code,produto);
+  return id;
+ }
+ VendaResponseDTO saleSku(UUID sku,String q) {
+  UUID customer=UUID.randomUUID();sql.update("insert into cliente(id,nome,criado_em) values (?,'Cliente SKU',now())",customer);
+  return sales.criar(UUID.randomUUID(),new VendaRequestDTO(null,null,null,customer,null,loja,null,List.of(new ProdutoVendaRequestDTO(null,sku,new BigDecimal(q),BigDecimal.ONE,BigDecimal.ZERO))));
+ }
+ @Test void stage13VariantsHaveIndependentBalancesPricesAndCombinedFilters() {
+  UUID a=variant("200g","UNIDADE"),b=variant("500g","UNIDADE");
+  stock(a,loja,"2");stock(b,loja,"100");stock(produto,loja,"3.125");
+  UUID parent=skus.buscarPorId(a).idProduto();assertEquals(parent,skus.buscarPorId(b).idProduto());
+   // Price independence is persisted by SKU/store, with manual document prices unchanged.
+  sql.update("insert into produto_preco_loja(id,id_produto_sku,id_loja,preco,data_inicio,criado_em) values (?,?,?,5,now(),now()),(?,?,?,8,now(),now())",UUID.randomUUID(),a,loja,UUID.randomUUID(),b,loja);
+  assertEquals(2,sql.queryForObject("select count(distinct preco) from produto_preco_loja",Integer.class));
+  assertEquals(1,stocks.listar(parent,a,loja).size());assertEquals(0,stocks.listar(UUID.randomUUID(),a,loja).size());
+  var sale=saleSku(a,"3");assertThrows(ConflictException.class,()->sales.concluir(sale.id(),sale.versao()));balance(a,loja,"2");balance(b,loja,"100");
+  var ok=saleSku(a,"1");sales.concluir(ok.id(),ok.versao());balance(a,loja,"1");balance(b,loja,"100");balance(produto,loja,"3.125");
+  assertEquals(1,history.listar(parent,a,loja).size());assertEquals(0,history.listar(parent,b,loja).size());
+  assertThrows(InvalidInputException.class,()->saleSku(a,"0.125"));
+  var bulk=saleSku(produto,"0.125");sales.concluir(bulk.id(),bulk.versao());balance(produto,loja,"3");
+ }
+ @Test void stage13PurchaseReceiptSaleReturnKeepSkuAndSnapshots() {
+  UUID a=variant("200g","UNIDADE"),b=variant("500g","UNIDADE");
+  UUID supplier=sql.queryForObject("select id from fornecedor limit 1",UUID.class);
+  var buy=compras.criar(new com.vilaverde.erp.dto.compra.CompraRequestDTO(supplier,loja,null,null,null,null,List.of(new com.vilaverde.erp.dto.compra.ItemCompraRequestDTO(null,a,new BigDecimal("10"),BigDecimal.ONE,BigDecimal.ZERO))));
+  var original=buy.itens().getFirst();
+  var receipt=service.criar(UUID.randomUUID(),new RecebimentoCompraRequestDTO(buy.id(),null,null,null,StatusDocumento.RASCUNHO,null,List.of(new ItemRecebimentoRequestDTO(null,original.id(),a,new BigDecimal("10"),null))));
+  assertThrows(InvalidInputException.class,()->service.criar(UUID.randomUUID(),new RecebimentoCompraRequestDTO(buy.id(),null,null,null,StatusDocumento.RASCUNHO,null,List.of(new ItemRecebimentoRequestDTO(null,original.id(),b,BigDecimal.ONE,null)))));
+  service.concluir(receipt.id(),receipt.versao());balance(a,loja,"10");balance(b,loja,"0");
+  var sale=saleSku(a,"2");sales.concluir(sale.id(),sale.versao());balance(a,loja,"8");
+  var request=new DevolucaoClienteRequestDTO(sale.id(),null,null,null,"Retorno SKU",null,null,List.of(new ItemDevolucaoClienteRequestDTO(null,sale.itens().getFirst().id(),a,BigDecimal.ONE,"Obs",true)));
+  var ret=customers.criar(UUID.randomUUID(),request);customers.concluir(ret.id(),ret.versao());balance(a,loja,"9");balance(b,loja,"0");
+  var saved=skus.buscarPorId(a);
+  skus.atualizar(a,new com.vilaverde.erp.dto.produtosku.ProdutoSkuRequestDTO(saved.idProduto(),saved.status(),"NEW-CODE",null,null,saved.idUnidadeMedida(),saved.tipoVenda(),"Nova apresentação"));
+  assertEquals("200g",sales.buscarPorId(sale.id()).itens().getFirst().skuCodigoSnapshot());assertEquals("Pacote 200g",customers.buscar(ret.id()).itens().getFirst().skuApresentacaoSnapshot());
+  assertThrows(org.springframework.dao.DataIntegrityViolationException.class,()->skus.atualizar(a,new com.vilaverde.erp.dto.produtosku.ProdutoSkuRequestDTO(saved.idProduto(),saved.status(),"NEW-CODE",null,null,saved.idUnidadeMedida(),com.vilaverde.erp.entity.enums.TipoVenda.PESO,"Nova apresentação")));
+  assertThrows(org.springframework.dao.DataIntegrityViolationException.class,()->skus.excluir(a));
+ }
+ @Test void stage13UnitFractionsRejectedInAllInheritedEndpoints() {
+  UUID a=variant("Unidade","UNIDADE");UUID supplier=sql.queryForObject("select id from fornecedor limit 1",UUID.class);UUID purchase=purchase(supplier),origin=purchaseItem(purchase,a,"10");
+  assertThrows(InvalidInputException.class,()->service.criar(UUID.randomUUID(),new RecebimentoCompraRequestDTO(purchase,null,null,null,StatusDocumento.RASCUNHO,null,List.of(new ItemRecebimentoRequestDTO(null,origin,a,new BigDecimal("0.5"),null)))));
+  stock(a,loja,"5");var sale=saleSku(a,"2");sales.concluir(sale.id(),sale.versao());
+  var request=new DevolucaoClienteRequestDTO(sale.id(),null,null,null,"Retorno",null,null,List.of(new ItemDevolucaoClienteRequestDTO(null,sale.itens().getFirst().id(),a,new BigDecimal("0.5"),"Obs",true)));
+  assertThrows(InvalidInputException.class,()->customers.criar(UUID.randomUUID(),request));
+ }
+
+ @Test void stage13ConcurrentVariantSalesAndMultiVariantRollback() throws Exception {
+  UUID a=variant("200g","UNIDADE"),b=variant("500g","UNIDADE");stock(a,loja,"2");stock(b,loja,"2");
+  var x=saleSku(a,"2");var y=saleSku(b,"2");parallel(()->sales.concluir(x.id(),0),()->sales.concluir(y.id(),0));balance(a,loja,"0");balance(b,loja,"0");
+  stock(a,loja,"2");stock(b,loja,"1");
+  UUID customer=x.idCliente();var draft=sales.criar(UUID.randomUUID(),new VendaRequestDTO(null,null,null,customer,null,loja,null,List.of(new ProdutoVendaRequestDTO(null,a,new BigDecimal("2"),BigDecimal.ONE,BigDecimal.ZERO),new ProdutoVendaRequestDTO(null,b,new BigDecimal("2"),BigDecimal.ONE,BigDecimal.ZERO))));
+  long count=movements();assertThrows(ConflictException.class,()->sales.concluir(draft.id(),0));balance(a,loja,"2");balance(b,loja,"1");assertEquals(count,movements());
+ }
+ @Test void stage13InactiveSkuKeepsExistingDocumentsAndReturnsAccessible() {
+  UUID a=variant("200g","UNIDADE");stock(a,loja,"5");var s=saleSku(a,"2");sales.concluir(s.id(),0);
+  var saved=skus.buscarPorId(a);skus.atualizar(a,new com.vilaverde.erp.dto.produtosku.ProdutoSkuRequestDTO(saved.idProduto(),com.vilaverde.erp.entity.enums.StatusProduto.INATIVO,saved.sku(),null,null,saved.idUnidadeMedida(),saved.tipoVenda(),saved.descricaoApresentacao()));
+  assertEquals(a,sales.buscarPorId(s.id()).itens().getFirst().idProdutoSku());assertThrows(InvalidInputException.class,()->saleSku(a,"1"));
+  var req=new DevolucaoClienteRequestDTO(s.id(),null,null,null,"Retorno inativo",null,null,List.of(new ItemDevolucaoClienteRequestDTO(null,s.itens().getFirst().id(),a,BigDecimal.ONE,"Obs",true)));
+  var e=customers.criar(UUID.randomUUID(),req);customers.concluir(e.id(),0);balance(a,loja,"4");
  }
 }

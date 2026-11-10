@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface MovimentacaoEstoqueRepository
   extends JpaRepository<MovimentacaoEstoque, UUID>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<MovimentacaoEstoque>
 {
-  List<MovimentacaoEstoque> findByProdutoIdAndLojaId(
+  List<MovimentacaoEstoque> findByProdutoSkuIdAndLojaId(
     UUID idProduto,
     UUID idLoja
   );

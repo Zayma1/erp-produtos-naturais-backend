@@ -9,6 +9,10 @@ import java.util.UUID;
 public record MovimentacaoResponseDTO(
   UUID id,
   UUID idProduto,
+  UUID idProdutoSku,
+  String skuCodigoSnapshot,
+  String skuApresentacaoSnapshot,
+  String unidadeSiglaSnapshot,
   UUID idLoja,
   TipoMovimentacao tipo,
   BigDecimal quantidade,
@@ -29,7 +33,11 @@ public record MovimentacaoResponseDTO(
   public static MovimentacaoResponseDTO fromEntity(MovimentacaoEstoque e) {
     return new MovimentacaoResponseDTO(
       e.getId(),
-      e.getProduto().getId(),
+      e.getProdutoSku().getProduto().getId(),
+      e.getProdutoSku().getId(),
+      e.getSkuCodigoSnapshot(),
+      e.getSkuApresentacaoSnapshot(),
+      e.getUnidadeSiglaSnapshot(),
       e.getLoja().getId(),
       e.getTipo(),
       e.getQuantidade(),

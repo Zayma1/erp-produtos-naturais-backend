@@ -14,28 +14,28 @@ public interface VendaRepository extends JpaRepository<Venda, UUID>, org.springf
 
   @Override
   @EntityGraph(
-    attributePaths = { "cliente", "usuario", "loja", "itens", "itens.produto" }
+    attributePaths = { "cliente", "usuario", "loja", "itens", "itens.produtoSku" }
   )
   List<Venda> findAll();
 
   @Override
   @EntityGraph(
-    attributePaths = { "cliente", "usuario", "loja", "itens", "itens.produto" }
+    attributePaths = { "cliente", "usuario", "loja", "itens", "itens.produtoSku" }
   )
   Optional<Venda> findById(UUID id);
 
   @EntityGraph(
-    attributePaths = { "cliente", "usuario", "loja", "itens", "itens.produto" }
+    attributePaths = { "cliente", "usuario", "loja", "itens", "itens.produtoSku" }
   )
   List<Venda> findByLojaId(UUID idLoja);
 
   @EntityGraph(
-    attributePaths = { "cliente", "usuario", "loja", "itens", "itens.produto" }
+    attributePaths = { "cliente", "usuario", "loja", "itens", "itens.produtoSku" }
   )
   List<Venda> findByClienteId(UUID idCliente);
 
   @EntityGraph(
-    attributePaths = { "cliente", "usuario", "loja", "itens", "itens.produto" }
+    attributePaths = { "cliente", "usuario", "loja", "itens", "itens.produtoSku" }
   )
   List<Venda> findByUsuarioId(UUID idUsuario);
 }

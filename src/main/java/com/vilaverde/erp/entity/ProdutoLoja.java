@@ -14,7 +14,7 @@ import lombok.Setter;
   name = "produto_loja",
   uniqueConstraints = @UniqueConstraint(
     name = "uq_produto_loja_produto_loja",
-    columnNames = { "id_produto", "id_loja" }
+    columnNames = { "id_produto_sku", "id_loja" }
   )
 )
 @Getter
@@ -29,8 +29,8 @@ public class ProdutoLoja {
 
   @NotNull
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "id_produto", nullable = false)
-  private Produto produto;
+  @JoinColumn(name = "id_produto_sku", nullable = false)
+  private ProdutoSku produtoSku;
 
   @NotNull
   @ManyToOne(fetch = FetchType.LAZY)

@@ -8,9 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ProdutoLojaRepository
   extends JpaRepository<ProdutoLoja, UUID>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<ProdutoLoja>
 {
-  List<ProdutoLoja> findByProdutoId(UUID idProduto);
+  List<ProdutoLoja> findByProdutoSkuId(UUID idProduto);
 
   List<ProdutoLoja> findByLojaId(UUID idLoja);
 
-  boolean existsByProdutoIdAndLojaId(UUID idProduto, UUID idLoja);
+  boolean existsByProdutoSkuIdAndLojaId(UUID idProduto, UUID idLoja);
 }

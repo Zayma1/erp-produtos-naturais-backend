@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record SaldoEstoqueResponseDTO(
   UUID idProduto,
+  UUID idProdutoSku,
   UUID idLoja,
   BigDecimal quantidadeAtual
 ) {}

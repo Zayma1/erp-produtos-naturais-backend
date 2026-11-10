@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public record ItemCompraRequestDTO(
   UUID id,
-  @NotNull UUID idProduto,
+  @NotNull UUID idProdutoSku,
   @NotNull @DecimalMin("0.001") BigDecimal quantidade,
   @NotNull @DecimalMin("0.00") BigDecimal custoUnitario,
   @DecimalMin("0.00") BigDecimal desconto

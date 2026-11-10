@@ -16,12 +16,12 @@ public class ProdutoPrecoLojaService {
   private final com.vilaverde.erp.security.AccessScope scope;
 
   private final ProdutoPrecoLojaRepository repository;
-  private final ProdutoRepository produtoRepository;
+  private final ProdutoSkuRepository produtoRepository;
   private final LojaRepository lojaRepository;
 
   @Transactional(readOnly = true)
-  public List<ProdutoPrecoLojaResponseDTO> listar(UUID idProduto, UUID idLoja) {
-    return scope.rows(repository,"loja.id").stream().filter(e -> (idProduto==null || e.getProduto().getId().equals(idProduto)) && (idLoja==null || e.getLoja().getId().equals(idLoja))).map(ProdutoPrecoLojaResponseDTO::fromEntity).toList();
+  public List<ProdutoPrecoLojaResponseDTO> listar(UUID idProduto, UUID idProdutoSku, UUID idLoja) {
+    return scope.rows(repository,"loja.id").stream().filter(e -> (idProduto==null || e.getProdutoSku().getProduto().getId().equals(idProduto)) && (idProdutoSku==null || e.getProdutoSku().getId().equals(idProdutoSku)) && (idLoja==null || e.getLoja().getId().equals(idLoja))).map(ProdutoPrecoLojaResponseDTO::fromEntity).toList();
   }
 
   @Transactional(readOnly = true)
@@ -76,11 +76,11 @@ public class ProdutoPrecoLojaService {
 
   private void aplicar(ProdutoPrecoLoja e, ProdutoPrecoLojaRequestDTO d) {
     scope.store(d.idLoja());
-    e.setProduto(
+    e.setProdutoSku(
       produtoRepository
-        .findById(d.idProduto())
+        .findById(d.idProdutoSku())
         .orElseThrow(() ->
-          new ResourceNotFoundException("Produto não encontrado")
+          new ResourceNotFoundException("SKU não encontrado")
         )
     );
     e.setLoja(

@@ -21,6 +21,9 @@ public class ProdutoSkuService {
 
   private final ProdutoSkuRepository produtoSkuRepository;
   private final ProdutoRepository produtoRepository;
+  private final com.vilaverde.erp.repository.ProdutoLojaRepository vinculos;
+  private final com.vilaverde.erp.security.AccessScope scope;
+  private final com.vilaverde.erp.repository.UnidadeMedidaRepository unidades;
 
   @Transactional(readOnly = true)
   public List<ProdutoSkuResponseDTO> listar(UUID idProduto, UUID idLoja) {
@@ -30,7 +33,7 @@ public class ProdutoSkuService {
     } else {
       skus = produtoSkuRepository.findAll();
     }
-    return skus.stream().map(ProdutoSkuResponseDTO::fromEntity).toList();
+    return skus.stream().filter(s -> idLoja==null || (scope.permits(idLoja) && vinculos.existsByProdutoSkuIdAndLojaId(s.getId(),idLoja))).map(ProdutoSkuResponseDTO::fromEntity).toList();
   }
 
   @Transactional(readOnly = true)
@@ -66,6 +69,8 @@ public class ProdutoSkuService {
 
   private void aplicar(ProdutoSku sku, ProdutoSkuRequestDTO dto) {
     sku.setProduto(buscarProduto(dto.idProduto()));
+    sku.setUnidadeMedida(unidades.findById(dto.idUnidadeMedida()).orElseThrow(()->new ResourceNotFoundException("Unidade não encontrada")));
+    sku.setTipoVenda(dto.tipoVenda());
     sku.setStatus(dto.status() != null ? dto.status() : StatusProduto.ATIVO);
     sku.setSku(dto.sku());
     sku.setEan13(dto.ean13());

@@ -19,8 +19,8 @@ public class ProdutoPrecoLoja {
   private UUID id;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "id_produto", nullable = false)
-  private Produto produto;
+  @JoinColumn(name = "id_produto_sku", nullable = false)
+  private ProdutoSku produtoSku;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "id_loja", nullable = false)

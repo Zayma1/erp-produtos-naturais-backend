@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public record ProdutoVendaRequestDTO(
   UUID id,
-  @NotNull(message = "Produto é obrigatório") UUID idProduto,
+  @NotNull(message = "Produto é obrigatório") UUID idProdutoSku,
   @NotNull(message = "Quantidade é obrigatória")
   @DecimalMin(value = "0.001", message = "Quantidade deve ser maior que zero")
   @Digits(integer=11,fraction=3) BigDecimal quantidade,

@@ -10,7 +10,7 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/produtos-precos-loja")
+@RequestMapping("/api/skus-precos-loja")
 @RequiredArgsConstructor
 public class ProdutoPrecoLojaController {
 
@@ -20,9 +20,10 @@ public class ProdutoPrecoLojaController {
   @GetMapping
   public List<ProdutoPrecoLojaResponseDTO> listar(
     @RequestParam(required = false) UUID idProduto,
+    @RequestParam(required = false) UUID idProdutoSku,
     @RequestParam(required = false) UUID idLoja
   ) {
-    return service.listar(idProduto, idLoja);
+    return service.listar(idProduto, idProdutoSku, idLoja);
   }
 
   @Operation(operationId = "buscarPrecoProdutoLojaPorId")

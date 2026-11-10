@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AjusteEstoqueService {
  private final AjusteEstoqueRepository repository;
  private final LojaRepository lojas;
- private final ProdutoRepository produtos;
+ private final ProdutoSkuRepository produtos;
  private final MovimentacaoEstoqueRepository movimentos;
  private final AccessScope scope;
  private final JdbcTemplate jdbc;
@@ -75,24 +75,24 @@ public class AjusteEstoqueService {
    if(t.getStatus()==StatusDocumento.CONCLUIDO)return AjusteResponseDTO.fromEntity(t);
    open(t,version);
    if(t.getItens().isEmpty()) throw new ConflictException("Ajuste sem itens");
-   var items=t.getItens().stream().sorted(Comparator.comparing(i->i.getProduto().getId().toString())).toList();
+   var items=t.getItens().stream().sorted(Comparator.comparing(i->i.getProdutoSku().getId().toString())).toList();
    var store=t.getLoja().getId();
    Map<UUID,BigDecimal> balances=new HashMap<>();
    var problems=new ArrayList<String>();
    for(var i:items) {
-     jdbc.update("insert into estoque_produto(id,id_produto,id_loja,quantidade_atual,atualizado_em) values (?,?,?,0,now()) on conflict(id_produto,id_loja) do nothing",UUID.randomUUID(),i.getProduto().getId(),store);
-     var before=jdbc.queryForObject("select quantidade_atual from estoque_produto where id_produto=? and id_loja=? for update",BigDecimal.class,i.getProduto().getId(),store);
-     balances.put(i.getProduto().getId(),before);
+     jdbc.update("insert into estoque_produto(id,id_produto_sku,id_loja,quantidade_atual,atualizado_em) values (?,?,?,0,now()) on conflict(id_produto_sku,id_loja) do nothing",UUID.randomUUID(),i.getProdutoSku().getId(),store);
+     var before=jdbc.queryForObject("select quantidade_atual from estoque_produto where id_produto_sku=? and id_loja=? for update",BigDecimal.class,i.getProdutoSku().getId(),store);
+     balances.put(i.getProdutoSku().getId(),before);
      var after=before.add(i.getTipo()==TipoMovimentacao.AJUSTE_ENTRADA ? i.getQuantidade():i.getQuantidade().negate());
-     if(after.signum()<0 || after.compareTo(new BigDecimal("100000000000"))>=0)problems.add(i.getProduto().getNome()+": saldo "+before+", resultado inválido "+after);
+     if(after.signum()<0 || after.compareTo(new BigDecimal("100000000000"))>=0)problems.add(i.getProdutoSku().getDisplayName()+": saldo "+before+", resultado inválido "+after);
    }
    if(!problems.isEmpty())throw new ConflictException("Ajuste bloqueada: "+String.join("; ",problems));
    var now=now();var actor=scope.actor();
    for(var i:items) {
      var delta=i.getTipo()==TipoMovimentacao.AJUSTE_ENTRADA ? i.getQuantidade():i.getQuantidade().negate();
-     i.setSaldoAntes(balances.get(i.getProduto().getId()));i.setSaldoDepois(i.getSaldoAntes().add(delta));
-     jdbc.update("update estoque_produto set quantidade_atual=quantidade_atual+?,atualizado_em=? where id_produto=? and id_loja=?",delta,now,i.getProduto().getId(),store);
-     var m=new MovimentacaoEstoque();m.setAjusteEstoque(t);m.setItemAjusteEstoque(i);m.setProduto(i.getProduto());m.setLoja(t.getLoja());m.setTipo(i.getTipo());m.setQuantidade(i.getQuantidade());m.setObservacao(i.getObservacao());m.setUsuario(actor);m.setDataMovimentacao(now);movimentos.save(m);
+     i.setSaldoAntes(balances.get(i.getProdutoSku().getId()));i.setSaldoDepois(i.getSaldoAntes().add(delta));
+     jdbc.update("update estoque_produto set quantidade_atual=quantidade_atual+?,atualizado_em=? where id_produto_sku=? and id_loja=?",delta,now,i.getProdutoSku().getId(),store);
+     var m=new MovimentacaoEstoque();m.setAjusteEstoque(t);m.setItemAjusteEstoque(i);m.setProdutoSku(i.getProdutoSku()); m.snapshotFrom(i);m.setLoja(t.getLoja());m.setTipo(i.getTipo());m.setQuantidade(i.getQuantidade());m.setObservacao(i.getObservacao());m.setUsuario(actor);m.setDataMovimentacao(now);movimentos.save(m);
    }
 
    t.setStatus(StatusDocumento.CONCLUIDO);t.setConfirmador(actor);t.setModificador(actor);t.setConcluidoEm(now);t.setAtualizadoEm(now);
@@ -113,7 +113,7 @@ public class AjusteEstoqueService {
    if(d.itens()==null || d.itens().isEmpty())throw new InvalidInputException("Informe itens");
    var products=new HashSet<UUID>();
    for(var i:d.itens()) {
-     if(i==null || i.idProduto()==null || !products.add(i.idProduto()))throw new InvalidInputException("Produtos obrigatórios e únicos");
+     if(i==null || i.idProdutoSku()==null || !products.add(i.idProdutoSku()))throw new InvalidInputException("Produtos obrigatórios e únicos");
      if(i.tipo()!=TipoMovimentacao.AJUSTE_ENTRADA && i.tipo()!=TipoMovimentacao.AJUSTE_SAIDA)throw new InvalidInputException("Tipo de ajuste inválido");
      if(i.observacao()!=null && i.observacao().length()>255)throw new InvalidInputException("Observação deve ter até 255 caracteres");
      var q=i.quantidade();if(q==null || q.signum()<=0 || q.scale()>3 || q.compareTo(new BigDecimal("100000000000"))>=0)throw new InvalidInputException("Quantidade positiva numeric(14,3) obrigatória");
@@ -127,9 +127,9 @@ public class AjusteEstoqueService {
    for(var r:d.itens()) {
      var i=r.id()==null ? new ItemAjusteEstoque():old.get(r.id());
      if(i==null || (r.id()!=null && !retained.add(r.id())))throw new InvalidInputException("ID de item estrangeiro ou duplicado");
-     boolean same=i.getProduto()!=null && i.getProduto().getId().equals(r.idProduto());
-     i.setAjusteEstoque(t);i.setProduto(produtos.findById(r.idProduto()).orElseThrow(()->new ResourceNotFoundException("Produto não encontrado")));i.setQuantidade(r.quantidade());i.setTipo(r.tipo());i.setObservacao(r.observacao());
-     if(!same)i.setUnidadeSiglaSnapshot(i.getProduto().getUnidadeMedida().getSigla());
+     boolean same=i.getProdutoSku()!=null && i.getProdutoSku().getId().equals(r.idProdutoSku());
+     i.setAjusteEstoque(t);i.setProdutoSku(produtos.findById(r.idProdutoSku()).orElseThrow(()->new ResourceNotFoundException("SKU não encontrado")));i.setQuantidade(r.quantidade());i.setTipo(r.tipo());i.setObservacao(r.observacao());
+     if(!same)i.setUnidadeSiglaSnapshot(i.getProdutoSku().getUnidadeMedida().getSigla());
      if(r.id()==null)added.add(i);
    }
    t.getItens().removeIf(i->!retained.contains(i.getId()));t.getItens().addAll(added);
@@ -137,7 +137,7 @@ public class AjusteEstoqueService {
  private String hash(AjusteRequestDTO d) {
    var s=new StringBuilder();
    for(Object v:new Object[]{d.idLoja(),d.idUsuario(),d.versao(),d.status(),d.justificativa()})append(s,v);
-   for(var i:d.itens().stream().sorted(Comparator.comparing(r->r.idProduto().toString())).toList()){append(s,i.id());append(s,i.idProduto());append(s,i.quantidade().stripTrailingZeros().toPlainString());append(s,i.tipo());append(s,i.observacao());}
+   for(var i:d.itens().stream().sorted(Comparator.comparing(r->r.idProdutoSku().toString())).toList()){append(s,i.id());append(s,i.idProdutoSku());append(s,i.quantidade().stripTrailingZeros().toPlainString());append(s,i.tipo());append(s,i.observacao());}
    try{return HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(s.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8)));}catch(java.security.NoSuchAlgorithmException e){throw new IllegalStateException(e);}
  }
  private void append(StringBuilder s,Object v) {if(v==null)s.append("-1:");else {String a=v.toString();s.append(a.length()).append(':').append(a);}}

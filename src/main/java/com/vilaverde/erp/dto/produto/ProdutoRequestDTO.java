@@ -9,8 +9,6 @@ import java.util.UUID;
 public record ProdutoRequestDTO(
   @NotBlank(message = "Nome do produto é obrigatório") String nome,
   @NotNull(message = "Categoria é obrigatória") UUID idCategoria,
-  @NotNull(message = "Unidade de medida é obrigatória") UUID idUnidadeMedida,
   String descricao,
-  TipoVenda tipoVenda,
   StatusProduto status
 ) {}

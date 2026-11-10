@@ -35,15 +35,6 @@ public class Produto {
   @JoinColumn(name = "id_categoria", nullable = false)
   private Categoria categoria;
 
-  @NotNull(message = "Unidade de medida é obrigatória")
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "id_unidade_medida", nullable = false)
-  private UnidadeMedida unidadeMedida;
-
-  @Enumerated(EnumType.STRING)
-  @Column(name = "tipo_venda", nullable = false, length = 20)
-  private TipoVenda tipoVenda = TipoVenda.UNIDADE;
-
   @Column(name = "criado_em", nullable = false)
   private java.time.OffsetDateTime criadoEm = java.time.OffsetDateTime.now();
 

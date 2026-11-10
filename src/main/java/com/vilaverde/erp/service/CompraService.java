@@ -23,7 +23,7 @@ public class CompraService {
   private final FornecedorRepository fornecedorRepository;
   private final LojaRepository lojaRepository;
   private final UsuarioRepository usuarioRepository;
-  private final ProdutoRepository produtoRepository;
+  private final ProdutoSkuRepository produtoRepository;
 
   @Transactional(readOnly = true)
   public List<CompraResponseDTO> listar() {
@@ -115,13 +115,14 @@ public class CompraService {
     for (ItemCompraRequestDTO d : itens) {
       ItemCompra i = new ItemCompra();
       i.setCompra(e);
-      i.setProduto(
+      i.setProdutoSku(
         produtoRepository
-          .findById(d.idProduto())
+          .findById(d.idProdutoSku())
           .orElseThrow(() ->
-            new ResourceNotFoundException("Produto não encontrado")
+            new ResourceNotFoundException("SKU não encontrado")
           )
       );
+      i.getProdutoSku().requireActive();
       i.setQuantidade(d.quantidade());
       i.setCustoUnitario(d.custoUnitario());
       i.setDesconto(d.desconto() == null ? BigDecimal.ZERO : d.desconto());

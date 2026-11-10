@@ -13,7 +13,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class MovimentacaoEstoque {
+public class MovimentacaoEstoque extends SkuSnapshot {
 
   @ManyToOne(fetch=FetchType.LAZY)
   @JoinColumn(name="id_item_transferencia")
@@ -24,8 +24,8 @@ public class MovimentacaoEstoque {
   private UUID id;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "id_produto", nullable = false)
-  private Produto produto;
+  @JoinColumn(name = "id_produto_sku", nullable = false)
+  private ProdutoSku produtoSku;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "id_loja", nullable = false)
@@ -94,4 +94,10 @@ public class MovimentacaoEstoque {
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "id_item_recebimento_compra")
   private ItemRecebimentoCompra itemRecebimentoCompra;
+
+  public void setProdutoSku(ProdutoSku sku) {
+    if (produtoSku == null || !produtoSku.getId().equals(sku.getId())) capture(sku);
+    produtoSku = sku;
+  }
+  public void setQuantidade(java.math.BigDecimal q) {produtoSku.validateQuantity(q);quantidade=q;}
 }

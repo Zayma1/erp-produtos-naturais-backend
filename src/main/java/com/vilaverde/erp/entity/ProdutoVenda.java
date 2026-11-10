@@ -15,7 +15,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProdutoVenda {
+public class ProdutoVenda extends SkuSnapshot {
 
   @org.hibernate.annotations.Formula("devolucao_cliente_quantidade(id)")
   private BigDecimal quantidadeDevolvida;
@@ -32,12 +32,9 @@ public class ProdutoVenda {
 
   @NotNull
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "id_produto", nullable = false)
-  private Produto produto;
-
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "id_produto_sku")
+  @JoinColumn(name = "id_produto_sku", nullable = false)
   private ProdutoSku produtoSku;
+
 
   @NotNull
   @Column(name = "quantidade", nullable = false, precision = 14, scale = 3)
@@ -53,6 +50,10 @@ public class ProdutoVenda {
   @Column(name = "total_item", nullable = false, precision = 14, scale = 2)
   private BigDecimal totalItem = BigDecimal.ZERO;
 
-  @Column(name = "unidade_sigla_snapshot", nullable = false, length = 10)
-  private String unidadeSiglaSnapshot;
+
+  public void setProdutoSku(ProdutoSku sku) {
+    if (produtoSku == null || !produtoSku.getId().equals(sku.getId())) capture(sku);
+    produtoSku = sku;
+  }
+  public void setQuantidade(java.math.BigDecimal q) {produtoSku.validateQuantity(q);quantidade=q;}
 }

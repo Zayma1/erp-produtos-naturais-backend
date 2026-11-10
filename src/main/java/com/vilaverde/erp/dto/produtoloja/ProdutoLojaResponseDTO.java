@@ -6,6 +6,7 @@ import java.util.UUID;
 public record ProdutoLojaResponseDTO(
   UUID id,
   UUID idProduto,
+  UUID idProdutoSku,
   String nomeProduto,
   UUID idLoja,
   String nomeLoja
@@ -13,8 +14,9 @@ public record ProdutoLojaResponseDTO(
   public static ProdutoLojaResponseDTO fromEntity(ProdutoLoja vinculo) {
     return new ProdutoLojaResponseDTO(
       vinculo.getId(),
-      vinculo.getProduto().getId(),
-      vinculo.getProduto().getNome(),
+      vinculo.getProdutoSku().getProduto().getId(),
+      vinculo.getProdutoSku().getId(),
+      vinculo.getProdutoSku().getProduto().getNome(),
       vinculo.getLoja().getId(),
       vinculo.getLoja().getNomeFantasia()
     );

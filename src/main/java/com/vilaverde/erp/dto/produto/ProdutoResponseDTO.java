@@ -10,10 +10,7 @@ public record ProdutoResponseDTO(
   String nome,
   UUID idCategoria,
   String nomeCategoria,
-  UUID idUnidadeMedida,
-  String siglaUnidadeMedida,
   String descricao,
-  TipoVenda tipoVenda,
   StatusProduto status
 ) {
   public static ProdutoResponseDTO fromEntity(Produto p) {
@@ -22,10 +19,7 @@ public record ProdutoResponseDTO(
       p.getNome(),
       p.getCategoria() != null ? p.getCategoria().getId() : null,
       p.getCategoria() != null ? p.getCategoria().getNome() : null,
-      p.getUnidadeMedida() != null ? p.getUnidadeMedida().getId() : null,
-      p.getUnidadeMedida() != null ? p.getUnidadeMedida().getSigla() : null,
       p.getDescricao(),
-      p.getTipoVenda(),
       p.getStatus()
     );
   }

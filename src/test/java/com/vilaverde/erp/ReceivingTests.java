@@ -46,7 +46,7 @@ class ReceivingTests {
     sql.update("insert into usuario(id,nome,email,cargo,senha_hash,status,criado_em) values (?,'Operador','op@example.test','ADMIN','test-only','ATIVO',now())",usuario);
     sql.update("insert into categoria values (?,'Categoria')",categoria);
     sql.update("insert into unidade_medida(id,nome,sigla) values (?,'Unidade','UN')",unidade);
-    sql.update("insert into produto(id,nome,id_categoria,id_unidade_medida,tipo_venda,status,criado_em) values (?,'Produto',?,?,'UNIDADE','ATIVO',now())",produto,categoria,unidade);
+    SkuFixtures.create(sql,produto,categoria,unidade,"Produto");
     sql.update("insert into fornecedor(id,nome_fantasia,razao_social,estado,cidade,bairro,status) values (?,'Fornecedor','F','SC','C','B','ATIVO')",fornecedor);
     sql.update("update usuario set revisado=true,alterar_senha=false where id=?",usuario);
     var principal=com.vilaverde.erp.security.AuthPrincipal.of(users.findById(usuario).orElseThrow(),false);
@@ -64,7 +64,7 @@ class ReceivingTests {
   }
   UUID purchaseItem(UUID compra,UUID produto,String q) {
     UUID id=UUID.randomUUID();
-    sql.update("insert into item_compra(id,id_compra,id_produto,quantidade,quantidade_recebida,custo_unitario,desconto,total_item) values (?,?,?,?,0,10,0,100)",id,compra,produto,new BigDecimal(q)); return id;
+    sql.update("insert into item_compra(id,id_compra,id_produto_sku,quantidade,quantidade_recebida,custo_unitario,desconto,total_item) values (?,?,?,?,0,10,0,100)",id,compra,produto,new BigDecimal(q)); return id;
   }
   RecebimentoCompraRequestDTO request(UUID c,UUID i,String q,Integer v) {
     return new RecebimentoCompraRequestDTO(c,usuario,v,OffsetDateTime.parse("2026-11-05T09:30:00-03:00"),StatusDocumento.RASCUNHO,"Header",List.of(new ItemRecebimentoRequestDTO(null,i,produto,new BigDecimal(q),"Item")));
@@ -169,10 +169,10 @@ class ReceivingTests {
   }
   @Test void failureAfterFirstStockWriteRollsBackEverything() {
     // Overflow the second stock increment after an earlier product has already been processed.
-    UUID p=UUID.randomUUID(); sql.update("insert into produto select criado_em,?,id_categoria,id_unidade_medida,tipo_venda,descricao,nome,status from produto where id=?",p,produto);
+    UUID p=UUID.randomUUID(); SkuFixtures.cloneSku(sql,p,produto,"Outra variante");
     UUID i=purchaseItem(compra,p,"10");
     UUID last=produto.toString().compareTo(p.toString())>0 ? produto : p;
-    sql.update("insert into estoque_produto(id,id_produto,id_loja,quantidade_atual,atualizado_em) values (?,?,?,99999999999.999,now())",UUID.randomUUID(),last,loja);
+    sql.update("insert into estoque_produto(id,id_produto_sku,id_loja,quantidade_atual,atualizado_em) values (?,?,?,99999999999.999,now())",UUID.randomUUID(),last,loja);
     var d=request(compra,item,"2",null);
     var a=service.criar(UUID.randomUUID(),new RecebimentoCompraRequestDTO(compra,usuario,null,d.dataRecebimento(),StatusDocumento.RASCUNHO,null,List.of(d.itens().getFirst(),new ItemRecebimentoRequestDTO(null,i,p,BigDecimal.ONE,null))));
     assertThrows(org.springframework.dao.DataAccessException.class,()->service.concluir(a.id(),a.versao()));
@@ -196,7 +196,7 @@ class ReceivingTests {
     assertEquals(second,sql.queryForObject("select id_usuario from movimentacao_estoque limit 1",UUID.class));
   }
   @Test void apiValidationAndErrorShape() throws Exception {
-    String base="{\"idCompra\":\""+compra+"\",\"idUsuario\":\""+usuario+"\",\"status\":\"RASCUNHO\",\"itens\":[{\"idItemCompra\":\""+item+"\",\"idProduto\":\""+produto+"\",\"quantidade\":%s}]}";
+    String base="{\"idCompra\":\""+compra+"\",\"idUsuario\":\""+usuario+"\",\"status\":\"RASCUNHO\",\"itens\":[{\"idItemCompra\":\""+item+"\",\"idProdutoSku\":\""+produto+"\",\"quantidade\":%s}]}";
     for(String q:List.of("0","-1","0.0001","100000000000"))
       mvc.perform(post("/api/recebimentos-compras").header("Idempotency-Key",UUID.randomUUID()).contentType("application/json").content(base.formatted(q))).andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value(400));
     mvc.perform(post("/api/recebimentos-compras").header("Idempotency-Key",UUID.randomUUID()).contentType("application/json").content(base.formatted("1").replaceFirst("\\[\\{.*\\}\\]", "[null]"))).andExpect(status().isBadRequest());
