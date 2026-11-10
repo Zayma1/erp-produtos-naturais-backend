@@ -226,6 +226,8 @@ class ReturnsTests {
   skus.atualizar(a,new com.vilaverde.erp.dto.produtosku.ProdutoSkuRequestDTO(saved.idProduto(),saved.status(),"NEW-CODE",null,null,saved.idUnidadeMedida(),saved.tipoVenda(),"Nova apresentação"));
   assertEquals("200g",sales.buscarPorId(sale.id()).itens().getFirst().skuCodigoSnapshot());assertEquals("Pacote 200g",customers.buscar(ret.id()).itens().getFirst().skuApresentacaoSnapshot());
   assertThrows(org.springframework.dao.DataIntegrityViolationException.class,()->skus.atualizar(a,new com.vilaverde.erp.dto.produtosku.ProdutoSkuRequestDTO(saved.idProduto(),saved.status(),"NEW-CODE",null,null,saved.idUnidadeMedida(),com.vilaverde.erp.entity.enums.TipoVenda.PESO,"Nova apresentação")));
+  UUID anotherUnit=UUID.randomUUID();sql.update("insert into unidade_medida(id,nome,sigla) values (?,'Outra','OUT')",anotherUnit);
+  assertThrows(org.springframework.dao.DataIntegrityViolationException.class,()->skus.atualizar(a,new com.vilaverde.erp.dto.produtosku.ProdutoSkuRequestDTO(saved.idProduto(),saved.status(),"NEW-CODE",null,null,anotherUnit,saved.tipoVenda(),"Nova apresentação")));
   assertThrows(org.springframework.dao.DataIntegrityViolationException.class,()->skus.excluir(a));
  }
  @Test void stage13UnitFractionsRejectedInAllInheritedEndpoints() {

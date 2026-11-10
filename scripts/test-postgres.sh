@@ -22,4 +22,4 @@ docker exec "$name" psql -U stage7 -d legacy_preflight -c 'ALTER TABLE item_comp
 if docker exec -e DATABASE_URL=postgresql://stage7@localhost/legacy_preflight -e PGPASSWORD=local-stage7-only -e BACKUP_PATH=/tmp/incompatible.dump "$name" bash /tmp/check/scripts/migrate-existing.sh; then
   echo 'ERROR: incompatible schema passed preflight' >&2; exit 1
 fi
-TEST_DATABASE_URL="jdbc:postgresql://127.0.0.1:$port/receiving_test" bash ./mvnw --batch-mode --no-transfer-progress test
+TEST_DATABASE_URL="jdbc:postgresql://127.0.0.1:$port/receiving_test" bash ./mvnw --batch-mode --no-transfer-progress test "$@"

@@ -82,7 +82,7 @@ class AdjustmentTests {
  void balance(UUID p,UUID l,String n) {assertEquals(0,new BigDecimal(n).compareTo(sql.queryForObject("select coalesce(sum(quantidade_atual),0) from estoque_produto where id_produto_sku=? and id_loja=?",BigDecimal.class,p,l)));}
  long movements() {return sql.queryForObject("select count(*) from movimentacao_estoque",Long.class);}
 
- @Test void exportOpenApi() throws Exception {var json=mvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();java.nio.file.Files.writeString(java.nio.file.Path.of("openapi-stage11.json"),json);}
+ @Test void exportOpenApi() throws Exception {var json=mvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();java.nio.file.Files.writeString(java.nio.file.Path.of("target/openapi-adjustments-test.json"),json);}
  @Autowired AjusteEstoqueService adjustments;
  AjusteRequestDTO adjust(Integer v,String q,TipoMovimentacao type) {return new AjusteRequestDTO(loja,null,"Correção",null,v,List.of(new ItemAjusteRequestDTO(null,produto,type,new BigDecimal(q),"Obs")));}
  @Test void entryExitReplayCancellationAndImmutable() {
