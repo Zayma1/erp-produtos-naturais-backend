@@ -85,8 +85,8 @@ Campos de senha compartilham botão de visibilidade; páginas de autenticação 
 recuperação ficam fora da dashboard. Atalhos `+` respeitam a permissão e abrem nova
 aba com `noopener`; `?novo=1` abre o modal de criação. `/skus/novo` reutiliza o
 formulário e permite selecionar produto agrupador, com `catalog.write`.
-Atualizações dos seletores refazem somente sua consulta e conservam valores e
-seleções; não escolhem registros novos automaticamente. Data de compra aceita
+Atualizações dos seletores refazem somente as consultas do campo e conservam valores e
+seleções (SKU consulta variantes e agrupadores, necessários para validar o status); não escolhem registros novos automaticamente. Data de compra aceita
 minutos, zera segundos novos e conserva o timestamp original quando não alterada.
 Desconto seleciona o zero ao focar, mantendo entrada decimal brasileira.
 
