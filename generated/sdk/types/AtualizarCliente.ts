@@ -3,8 +3,8 @@
 * Do not edit manually.
 */
 
+import type { ApiError } from './ApiError'
 import type { ClienteRequestDTO } from './ClienteRequestDTO'
-import type { ClienteResponseDTO } from './ClienteResponseDTO'
 
 export type AtualizarClientePath = {
   /**
@@ -15,7 +15,9 @@ export type AtualizarClientePath = {
   id: string;
 };
 
-export type AtualizarClienteStatus200 = ClienteResponseDTO;
+export type AtualizarClienteStatus400 = ApiError;
+
+export type AtualizarClienteStatus409 = ApiError;
 
 export type AtualizarClienteBody = ClienteRequestDTO;
 
@@ -27,10 +29,11 @@ export type AtualizarClienteOptions = {
 };
 
 export type AtualizarClienteResponses = {
-  '200': AtualizarClienteStatus200;
+  '400': AtualizarClienteStatus400;
+  '409': AtualizarClienteStatus409;
 };
 
 /**
  * @description Union of all possible responses
  */
-export type AtualizarClienteResponse = AtualizarClienteStatus200;
+export type AtualizarClienteResponse = AtualizarClienteStatus400 | AtualizarClienteStatus409;

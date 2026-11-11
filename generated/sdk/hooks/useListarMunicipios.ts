@@ -4,7 +4,7 @@
 */
 
 import type { RequestConfig, ResponseErrorConfig } from '../.kubb/client'
-import type { ListarMunicipiosOptions, ListarMunicipiosStatus200 } from '../types/ListarMunicipios'
+import type { ListarMunicipiosOptions, ListarMunicipiosResponse, ListarMunicipiosStatus503 } from '../types/ListarMunicipios'
 import type { QueryKey, QueryClient, QueryObserverOptions, UseQueryResult } from '@tanstack/react-query'
 import { listarMunicipios } from '../clients/listarMunicipios'
 import { queryOptions, useQuery } from '@tanstack/react-query'
@@ -15,7 +15,7 @@ type ListarMunicipiosQueryKey = ReturnType<typeof listarMunicipiosQueryKey>
 
 export function listarMunicipiosQueryOptions({ path }: ListarMunicipiosOptions, config: Partial<Omit<RequestConfig, 'path' | 'query' | 'body' | 'headers' | 'url'>> = {}) {
   const queryKey = listarMunicipiosQueryKey({ path })
-  return queryOptions<ListarMunicipiosStatus200, ResponseErrorConfig<Error>, ListarMunicipiosStatus200, typeof queryKey>({
+  return queryOptions<ListarMunicipiosResponse, ResponseErrorConfig<ListarMunicipiosStatus503>, ListarMunicipiosResponse, typeof queryKey>({
    queryKey,
    queryFn: async ({ signal }) => {
       return listarMunicipios({ ...config, path, signal: config.signal ?? signal, throwOnError: true }).unwrap()
@@ -26,8 +26,8 @@ export function listarMunicipiosQueryOptions({ path }: ListarMunicipiosOptions, 
 /**
  * {@link /api/localidades/estados/:uf/municipios}
  */
-export function useListarMunicipios<TData = ListarMunicipiosStatus200, TQueryData = ListarMunicipiosStatus200, TQueryKey extends QueryKey = ListarMunicipiosQueryKey>({ path }: { path: ListarMunicipiosOptions['path'] | (() => ListarMunicipiosOptions['path']) }, options: {
-  query?: Partial<QueryObserverOptions<ListarMunicipiosStatus200, ResponseErrorConfig<Error>, TData, TQueryData, TQueryKey>> & { client?: QueryClient },
+export function useListarMunicipios<TData = ListarMunicipiosResponse, TQueryData = ListarMunicipiosResponse, TQueryKey extends QueryKey = ListarMunicipiosQueryKey>({ path }: { path: ListarMunicipiosOptions['path'] | (() => ListarMunicipiosOptions['path']) }, options: {
+  query?: Partial<QueryObserverOptions<ListarMunicipiosResponse, ResponseErrorConfig<ListarMunicipiosStatus503>, TData, TQueryData, TQueryKey>> & { client?: QueryClient },
   client?: Partial<Omit<RequestConfig, 'path' | 'query' | 'body' | 'headers' | 'url'>>
 } = {}) {
   const { query: queryConfig = {}, client: config = {} } = options ?? {}
@@ -39,7 +39,7 @@ export function useListarMunicipios<TData = ListarMunicipiosStatus200, TQueryDat
    ...listarMunicipiosQueryOptions(resolvedParams, config),
    ...resolvedOptions,
    queryKey,
-  } as unknown as QueryObserverOptions, queryClient) as UseQueryResult<TData, ResponseErrorConfig<Error>> & { queryKey: TQueryKey }
+  } as unknown as QueryObserverOptions, queryClient) as UseQueryResult<TData, ResponseErrorConfig<ListarMunicipiosStatus503>> & { queryKey: TQueryKey }
 
   queryResult.queryKey = queryKey as TQueryKey
 

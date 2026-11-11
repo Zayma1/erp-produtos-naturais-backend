@@ -3,13 +3,13 @@
 * Do not edit manually.
 */
 
-import type { Catalog } from './Catalog'
+import type { ApiError } from './ApiError'
 
 export type ListarMunicipiosPath = {
   uf: string;
 };
 
-export type ListarMunicipiosStatus200 = Catalog;
+export type ListarMunicipiosStatus503 = ApiError;
 
 export type ListarMunicipiosOptions = {
   body?: never;
@@ -19,10 +19,10 @@ export type ListarMunicipiosOptions = {
 };
 
 export type ListarMunicipiosResponses = {
-  '200': ListarMunicipiosStatus200;
+  '503': ListarMunicipiosStatus503;
 };
 
 /**
  * @description Union of all possible responses
  */
-export type ListarMunicipiosResponse = ListarMunicipiosStatus200;
+export type ListarMunicipiosResponse = ListarMunicipiosStatus503;

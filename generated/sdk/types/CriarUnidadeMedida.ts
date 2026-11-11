@@ -3,10 +3,12 @@
 * Do not edit manually.
 */
 
+import type { ApiError } from './ApiError'
 import type { UnidadeMedidaRequestDTO } from './UnidadeMedidaRequestDTO'
-import type { UnidadeMedidaResponseDTO } from './UnidadeMedidaResponseDTO'
 
-export type CriarUnidadeMedidaStatus200 = UnidadeMedidaResponseDTO;
+export type CriarUnidadeMedidaStatus400 = ApiError;
+
+export type CriarUnidadeMedidaStatus409 = ApiError;
 
 export type CriarUnidadeMedidaBody = UnidadeMedidaRequestDTO;
 
@@ -18,10 +20,11 @@ export type CriarUnidadeMedidaOptions = {
 };
 
 export type CriarUnidadeMedidaResponses = {
-  '200': CriarUnidadeMedidaStatus200;
+  '400': CriarUnidadeMedidaStatus400;
+  '409': CriarUnidadeMedidaStatus409;
 };
 
 /**
  * @description Union of all possible responses
  */
-export type CriarUnidadeMedidaResponse = CriarUnidadeMedidaStatus200;
+export type CriarUnidadeMedidaResponse = CriarUnidadeMedidaStatus400 | CriarUnidadeMedidaStatus409;

@@ -85,7 +85,13 @@ class ReturnsTests {
 
  @Autowired DevolucaoClienteService customers;
  @Autowired DevolucaoFornecedorService suppliers;
- @Test void exportOpenApi() throws Exception {java.nio.file.Files.writeString(java.nio.file.Path.of("openapi-stage14.json"),mvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());}
+ @Test void exportOpenApi() throws Exception {
+  var contract=mvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+  var schemas=new tools.jackson.databind.ObjectMapper().readTree(contract).get("components").get("schemas");
+  for(String field:List.of("token","senha","confirmacao"))assertTrue(schemas.get("PasswordReset").get("properties").has(field));
+  assertFalse(schemas.get("Reset").get("properties").has("token"),"Administrative and public password reset schemas must remain distinct");
+  java.nio.file.Files.writeString(java.nio.file.Path.of("openapi-stage14.json"),contract);
+ }
  VendaResponseDTO sale(String q,boolean complete) {
   UUID customer=UUID.randomUUID();sql.update("insert into cliente(id,nome,criado_em) values (?,'Cliente',now())",customer);
   var e=sales.criar(UUID.randomUUID(),new VendaRequestDTO(null,null,null,customer,null,loja,null,List.of(new ProdutoVendaRequestDTO(null,produto,new BigDecimal(q),BigDecimal.ONE,BigDecimal.ZERO))));

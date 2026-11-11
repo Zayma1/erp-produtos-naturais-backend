@@ -3,9 +3,9 @@
 * Do not edit manually.
 */
 
-import type { Catalog } from './Catalog'
+import type { ApiError } from './ApiError'
 
-export type ListarEstadosStatus200 = Catalog;
+export type ListarEstadosStatus503 = ApiError;
 
 export type ListarEstadosOptions = {
   body?: never;
@@ -15,10 +15,10 @@ export type ListarEstadosOptions = {
 };
 
 export type ListarEstadosResponses = {
-  '200': ListarEstadosStatus200;
+  '503': ListarEstadosStatus503;
 };
 
 /**
  * @description Union of all possible responses
  */
-export type ListarEstadosResponse = ListarEstadosStatus200;
+export type ListarEstadosResponse = ListarEstadosStatus503;

@@ -3,13 +3,12 @@
 * Do not edit manually.
 */
 
-import type { Reset } from './Reset'
+import type { ApiError } from './ApiError'
+import type { PasswordReset } from './PasswordReset'
 
-export type RedefinirSenhaStatus200 = {
-  [key: string]: string;
-};
+export type RedefinirSenhaStatus400 = ApiError;
 
-export type RedefinirSenhaBody = Reset;
+export type RedefinirSenhaBody = PasswordReset;
 
 export type RedefinirSenhaOptions = {
   body: RedefinirSenhaBody;
@@ -19,10 +18,10 @@ export type RedefinirSenhaOptions = {
 };
 
 export type RedefinirSenhaResponses = {
-  '200': RedefinirSenhaStatus200;
+  '400': RedefinirSenhaStatus400;
 };
 
 /**
  * @description Union of all possible responses
  */
-export type RedefinirSenhaResponse = RedefinirSenhaStatus200;
+export type RedefinirSenhaResponse = RedefinirSenhaStatus400;

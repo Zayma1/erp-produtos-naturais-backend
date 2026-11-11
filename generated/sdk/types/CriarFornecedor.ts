@@ -3,10 +3,14 @@
 * Do not edit manually.
 */
 
+import type { ApiError } from './ApiError'
 import type { FornecedorRequestDTO } from './FornecedorRequestDTO'
-import type { FornecedorResponseDTO } from './FornecedorResponseDTO'
 
-export type CriarFornecedorStatus200 = FornecedorResponseDTO;
+export type CriarFornecedorStatus400 = ApiError;
+
+export type CriarFornecedorStatus409 = ApiError;
+
+export type CriarFornecedorStatus503 = ApiError;
 
 export type CriarFornecedorBody = FornecedorRequestDTO;
 
@@ -18,10 +22,12 @@ export type CriarFornecedorOptions = {
 };
 
 export type CriarFornecedorResponses = {
-  '200': CriarFornecedorStatus200;
+  '400': CriarFornecedorStatus400;
+  '409': CriarFornecedorStatus409;
+  '503': CriarFornecedorStatus503;
 };
 
 /**
  * @description Union of all possible responses
  */
-export type CriarFornecedorResponse = CriarFornecedorStatus200;
+export type CriarFornecedorResponse = CriarFornecedorStatus400 | CriarFornecedorStatus409 | CriarFornecedorStatus503;
