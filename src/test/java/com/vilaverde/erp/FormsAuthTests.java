@@ -164,4 +164,11 @@ class FormsAuthTests {
       var unitsJobs=List.of("  Nova   Unidade ","NOVA UNIDADE").stream().map(name->pool.submit(()->{start.await();try{units.criar(new UnidadeMedidaRequestDTO("UN",name));return true;}catch(RuntimeException e){return false;}})).toList();start.countDown();successes=0;for(var job:unitsJobs)if(job.get())successes++;assertEquals(1,successes);
     }
   }
+
+  @Test void unchangedLegacyAddressTreatsEmptyAndNullComplementEqually() {
+    UUID id=UUID.randomUUID();sql.update("insert into fornecedor(id,nome_fantasia,razao_social,estado,cidade,bairro,cnpj,status) values (?,'F','F','SC','Município antigo sem correspondência','B','04252011000110','ATIVO')",id);
+    var unchanged=new com.vilaverde.erp.dto.fornecedor.FornecedorRequestDTO("Nome alterado","F","SC","Município antigo sem correspondência","B",null,"","04252011000110",null);
+    var saved=suppliers.atualizar(id,unchanged);assertNull(saved.municipioIbge());assertEquals("Município antigo sem correspondência",saved.cidade());
+    assertThrows(InvalidInputException.class,()->suppliers.atualizar(id,new com.vilaverde.erp.dto.fornecedor.FornecedorRequestDTO("Nome alterado","F","SC",saved.cidade(),"Outro bairro",null,"","04252011000110",null)));
+  }
 }

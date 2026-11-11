@@ -50,7 +50,7 @@ public class LojaService {
   }
 
   private void aplicar(Loja loja, LojaRequestDTO dto) {
-    if(loja.getId()!=null && loja.getMunicipioIbge()==null && dto.municipioIbge()==null && (!java.util.Objects.equals(dto.bairro(),loja.getBairro()) || !java.util.Objects.equals(dto.complemento(),loja.getComplemento()) || !java.util.Objects.equals(dto.numero(),loja.getNumero())))throw new com.vilaverde.erp.exception.InvalidInputException("Selecione o município ao alterar o endereço anterior");
+    if(loja.getId()!=null && loja.getMunicipioIbge()==null && dto.municipioIbge()==null && (!java.util.Objects.equals(dto.bairro(),loja.getBairro()) || !java.util.Objects.equals(java.util.Objects.toString(dto.complemento(),""),java.util.Objects.toString(loja.getComplemento(),"")) || !java.util.Objects.equals(dto.numero(),loja.getNumero())))throw new com.vilaverde.erp.exception.InvalidInputException("Selecione o município ao alterar o endereço anterior");
     loja.setNomeFantasia(dto.nomeFantasia());
     loja.setRazaoSocial(dto.razaoSocial());
     var address=localidades.validate(dto.estado(),dto.cidade(),dto.municipioIbge(),loja.getEstado(),loja.getCidade(),loja.getMunicipioIbge());

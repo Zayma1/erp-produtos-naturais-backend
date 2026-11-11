@@ -58,7 +58,7 @@ public class FornecedorService {
 
   private void aplicar(Fornecedor fornecedor, FornecedorRequestDTO dto) {
     if(Documents.normalize(dto.cpf()).isEmpty()==Documents.normalize(dto.cnpj()).isEmpty())throw new com.vilaverde.erp.exception.InvalidInputException("Informe exatamente um documento: CPF ou CNPJ");
-    if(fornecedor.getId()!=null && fornecedor.getMunicipioIbge()==null && dto.municipioIbge()==null && (!java.util.Objects.equals(dto.bairro(),fornecedor.getBairro()) || !java.util.Objects.equals(dto.complemento(),fornecedor.getComplemento())))throw new com.vilaverde.erp.exception.InvalidInputException("Selecione o município ao alterar o endereço anterior");
+    if(fornecedor.getId()!=null && fornecedor.getMunicipioIbge()==null && dto.municipioIbge()==null && (!java.util.Objects.equals(dto.bairro(),fornecedor.getBairro()) || !java.util.Objects.equals(java.util.Objects.toString(dto.complemento(),""),java.util.Objects.toString(fornecedor.getComplemento(),""))))throw new com.vilaverde.erp.exception.InvalidInputException("Selecione o município ao alterar o endereço anterior");
     fornecedor.setNomeFantasia(dto.nomeFantasia());
     fornecedor.setRazaoSocial(dto.razaoSocial());
     var address=localidades.validate(dto.estado(),dto.cidade(),dto.municipioIbge(),fornecedor.getEstado(),fornecedor.getCidade(),fornecedor.getMunicipioIbge());
