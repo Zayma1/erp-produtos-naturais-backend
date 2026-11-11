@@ -15,7 +15,7 @@ de qualquer escrita, valida documentos, duplicidades normalizadas, fornecedores
 com nenhum/ambos os documentos e nomes de unidade. Erros listam os IDs e impedem
 a migração; reconciliar explicitamente os registros e repetir, sem apagar/mesclar.
 Não fazer `repair`, baseline ou reset para contornar o preflight. A tabela
-`usuario_login_migracao` registra o resultado por ID. Usuários vêm do prefixo do
+`usuario_login_migracao` registra o resultado por ID (`SELECT id_usuario, usuario FROM usuario_login_migracao ORDER BY id_usuario`). Usuários vêm do prefixo do
 e-mail, com sufixo de UUID estável nas colisões; `admin` fica reservado ao bootstrap.
 A V9 revoga sessões antigas pela mudança do contrato da identidade.
 
