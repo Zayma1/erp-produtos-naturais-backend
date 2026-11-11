@@ -48,7 +48,7 @@ class AuthenticationTests {
       return http.send(r.method(method,body==null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body))).build(),HttpResponse.BodyHandlers.ofString());
     }
     void renew() throws Exception {csrf=json.readTree(call("GET","/api/auth/csrf",null,false).body()).get("token").asText();}
-    HttpResponse<String> login(String email,String password) throws Exception { var result=call("POST","/api/auth/login",Map.of("email",email,"senha",password),true);csrf=null;return result; }
+    HttpResponse<String> login(String email,String password) throws Exception { var result=call("POST","/api/auth/login",Map.of("login",email,"senha",password),true);csrf=null;return result; }
     JsonNode me() throws Exception { var r=call("GET","/api/auth/me",null,false);assertEquals(200,r.statusCode(),r.body());return json.readTree(r.body()); }
   }
   @BeforeEach void seed() {

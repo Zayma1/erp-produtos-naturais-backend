@@ -47,7 +47,7 @@ class ReturnsTests {
     loja=UUID.randomUUID(); usuario=UUID.randomUUID(); produto=UUID.randomUUID();
     UUID categoria=UUID.randomUUID(), unidade=UUID.randomUUID(), fornecedor=UUID.randomUUID();
     sql.update("insert into loja(id,cnpj,nome_fantasia,razao_social,bairro,cidade,estado,numero,status,criado_em) values (?,'12345678901234','Loja','Loja','B','C','SC','1','ATIVA',now())",loja);
-    sql.update("insert into usuario(id,nome,email,cargo,senha_hash,status,criado_em) values (?,'Operador','op@example.test','ADMIN','test-only','ATIVO',now())",usuario);
+    sql.update("insert into usuario(id,nome,email,usuario,cargo,senha_hash,status,criado_em) values (?,'Operador','op@example.test','operador','ADMIN','test-only','ATIVO',now())",usuario);
     sql.update("insert into categoria values (?,'Categoria')",categoria);
     sql.update("insert into unidade_medida(id,nome,sigla) values (?,'Unidade','UN')",unidade);
     SkuFixtures.create(sql,produto,categoria,unidade,"Produto");
@@ -85,7 +85,7 @@ class ReturnsTests {
 
  @Autowired DevolucaoClienteService customers;
  @Autowired DevolucaoFornecedorService suppliers;
- @Test void exportOpenApi() throws Exception {java.nio.file.Files.writeString(java.nio.file.Path.of("openapi-stage13.json"),mvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());}
+ @Test void exportOpenApi() throws Exception {java.nio.file.Files.writeString(java.nio.file.Path.of("openapi-stage14.json"),mvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());}
  VendaResponseDTO sale(String q,boolean complete) {
   UUID customer=UUID.randomUUID();sql.update("insert into cliente(id,nome,criado_em) values (?,'Cliente',now())",customer);
   var e=sales.criar(UUID.randomUUID(),new VendaRequestDTO(null,null,null,customer,null,loja,null,List.of(new ProdutoVendaRequestDTO(null,produto,new BigDecimal(q),BigDecimal.ONE,BigDecimal.ZERO))));
@@ -169,7 +169,7 @@ class ReturnsTests {
   assertThrows(ConflictException.class,()->suppliers.criar(key,supplier(null,srow(null,item,"1"))));
   assertThrows(InvalidInputException.class,()->suppliers.criar(UUID.randomUUID(),new DevolucaoFornecedorRequestDTO(compra,null,null,StatusDocumento.CONCLUIDA,"X",null,null,body.itens())));
   assertThrows(InvalidInputException.class,()->suppliers.criar(UUID.randomUUID(),supplier(null,srow(null,item,"100000000000"))));
-  UUID other=UUID.randomUUID();sql.update("insert into usuario(id,nome,email,cargo,senha_hash,status,criado_em,revisado,alterar_senha) values (?,'Outro','outro@test.local','ADMIN','test','ATIVO',now(),true,false)",other);
+  UUID other=UUID.randomUUID();sql.update("insert into usuario(id,nome,email,usuario,cargo,senha_hash,status,criado_em,revisado,alterar_senha) values (?,'Outro','outro@test.local','outro','ADMIN','test','ATIVO',now(),true,false)",other);
   var principal=com.vilaverde.erp.security.AuthPrincipal.of(users.findById(other).orElseThrow(),false);org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(principal,null,principal.getAuthorities()));assertThrows(ResourceNotFoundException.class,()->suppliers.criar(key,body));
   sql.update("update usuario set cargo='FUNC' where id=?",other);principal=com.vilaverde.erp.security.AuthPrincipal.of(users.findById(other).orElseThrow(),false);org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(principal,null,principal.getAuthorities()));assertThrows(org.springframework.security.access.AccessDeniedException.class,()->suppliers.listar(null));assertThrows(org.springframework.security.access.AccessDeniedException.class,()->customers.listar(null));
  }

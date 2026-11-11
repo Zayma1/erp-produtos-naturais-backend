@@ -12,9 +12,16 @@ public class AuthorizationService implements UserDetailsService {
   public static String normalize(String email) { return email == null ? "" : email.strip().toLowerCase(Locale.ROOT); }
   public static String loginEmail(String login) {
     String normalized=normalize(login);
-    return "admin".equals(normalized) ? DEFAULT_ADMIN_EMAIL : normalized;
+    return normalized;
+  }
+  public static String suggest(String email) {
+    String v=normalize(email).split("@",2)[0].replaceAll("[^a-z0-9._-]", "");
+    if(v.length()<3)v="user";return v.substring(0,Math.min(32,v.length()));
+  }
+  public java.util.Optional<com.vilaverde.erp.entity.Usuario> find(String login) {
+    String v=normalize(login);return v.contains("@")?users.findByEmail(v):users.findByUsuarioIgnoreCase(v);
   }
   @Override public AuthPrincipal loadUserByUsername(String email) {
-    return AuthPrincipal.of(users.findByEmail(loginEmail(email)).orElseThrow(() -> new UsernameNotFoundException("Credenciais inválidas")),true);
+    return AuthPrincipal.of(find(email).orElseThrow(() -> new UsernameNotFoundException("Credenciais inválidas")),true);
   }
 }

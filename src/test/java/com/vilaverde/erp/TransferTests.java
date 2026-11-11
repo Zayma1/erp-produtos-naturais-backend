@@ -45,7 +45,7 @@ class TransferTests {
     loja=UUID.randomUUID(); usuario=UUID.randomUUID(); produto=UUID.randomUUID();
     UUID categoria=UUID.randomUUID(), unidade=UUID.randomUUID(), fornecedor=UUID.randomUUID();
     sql.update("insert into loja(id,cnpj,nome_fantasia,razao_social,bairro,cidade,estado,numero,status,criado_em) values (?,'12345678901234','Loja','Loja','B','C','SC','1','ATIVA',now())",loja);
-    sql.update("insert into usuario(id,nome,email,cargo,senha_hash,status,criado_em) values (?,'Operador','op@example.test','ADMIN','test-only','ATIVO',now())",usuario);
+    sql.update("insert into usuario(id,nome,email,usuario,cargo,senha_hash,status,criado_em) values (?,'Operador','op@example.test','operador','ADMIN','test-only','ATIVO',now())",usuario);
     sql.update("insert into categoria values (?,'Categoria')",categoria);
     sql.update("insert into unidade_medida(id,nome,sigla) values (?,'Unidade','UN')",unidade);
     SkuFixtures.create(sql,produto,categoria,unidade,"Produto");
@@ -128,7 +128,7 @@ class TransferTests {
    var c=draft(loja,destino,"7");var results=parallel(()->transfers.concluir(c.id(),0),()->sales.concluir(sale.id(),0));assertEquals(1,results.stream().filter(ConflictException.class::isInstance).count());balance(produto,loja,"3");
  }
  void principal(String cargo,Set<UUID> stores) {
-   var p=new com.vilaverde.erp.security.AuthPrincipal(usuario,"op@example.test","Op",com.vilaverde.erp.entity.enums.CargoUsuario.valueOf(cargo),stores,0,false,true,null);
+   var p=new com.vilaverde.erp.security.AuthPrincipal(usuario,"op@example.test","operador","Op",com.vilaverde.erp.entity.enums.CargoUsuario.valueOf(cargo),stores,0,false,true,null);
    org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(p,null,p.getAuthorities()));
  }
  @Test void bothOldAndNewStoresAndReplayRequireScopeAndLegacyIsReadOnly() {
@@ -158,7 +158,7 @@ class TransferTests {
 
  @Test void modificationConfirmationAndCreationReplayHaveIndependentActors() {
    stock(produto,loja,"5");UUID key=UUID.randomUUID();var d=request(loja,destino,null,List.of(row(null,produto,"1")));var a=transfers.criar(key,d);
-   UUID modifier=UUID.randomUUID();sql.update("insert into usuario(id,nome,email,cargo,senha_hash,status,criado_em,revisado,alterar_senha) values (?,'Modifier','modifier@example.test','ADMIN','test','ATIVO',now(),true,false)",modifier);
+   UUID modifier=UUID.randomUUID();sql.update("insert into usuario(id,nome,email,usuario,cargo,senha_hash,status,criado_em,revisado,alterar_senha) values (?,'Modifier','modifier@example.test','modifier','ADMIN','test','ATIVO',now(),true,false)",modifier);
    var p=com.vilaverde.erp.security.AuthPrincipal.of(users.findById(modifier).orElseThrow(),false);org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(p,null,p.getAuthorities()));
    assertThrows(ResourceNotFoundException.class,()->transfers.criar(key,d));
    var b=transfers.atualizar(a.id(),request(loja,destino,0,List.of(row(a.itens().getFirst().id(),produto,"2"))));assertEquals(usuario,b.idUsuario());assertEquals(modifier,b.idModificador());

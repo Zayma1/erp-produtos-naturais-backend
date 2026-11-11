@@ -10,6 +10,7 @@ public record FornecedorResponseDTO(
   String estado,
   String cidade,
   String bairro,
+  Integer municipioIbge,
   String complemento,
   String cnpj,
   String cpf
@@ -22,6 +23,7 @@ public record FornecedorResponseDTO(
       fornecedor.getEstado(),
       fornecedor.getCidade(),
       fornecedor.getBairro(),
+      fornecedor.getMunicipioIbge(),
       fornecedor.getComplemento(),
       fornecedor.getCnpj(),
       fornecedor.getCpf()

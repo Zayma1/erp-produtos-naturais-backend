@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class FornecedorService {
 
+  private final LocalidadesService localidades;
   private final FornecedorRepository fornecedorRepository;
 
   @Transactional(readOnly = true)
@@ -56,14 +57,20 @@ public class FornecedorService {
   }
 
   private void aplicar(Fornecedor fornecedor, FornecedorRequestDTO dto) {
+    if(Documents.normalize(dto.cpf()).isEmpty()==Documents.normalize(dto.cnpj()).isEmpty())throw new com.vilaverde.erp.exception.InvalidInputException("Informe exatamente um documento: CPF ou CNPJ");
+    if(fornecedor.getId()!=null && fornecedor.getMunicipioIbge()==null && dto.municipioIbge()==null && (!java.util.Objects.equals(dto.bairro(),fornecedor.getBairro()) || !java.util.Objects.equals(dto.complemento(),fornecedor.getComplemento())))throw new com.vilaverde.erp.exception.InvalidInputException("Selecione o município ao alterar o endereço anterior");
     fornecedor.setNomeFantasia(dto.nomeFantasia());
     fornecedor.setRazaoSocial(dto.razaoSocial());
-    fornecedor.setEstado(dto.estado());
-    fornecedor.setCidade(dto.cidade());
+    var address=localidades.validate(dto.estado(),dto.cidade(),dto.municipioIbge(),fornecedor.getEstado(),fornecedor.getCidade(),fornecedor.getMunicipioIbge());
+    fornecedor.setEstado(address.uf());fornecedor.setCidade(address.nome());fornecedor.setMunicipioIbge(address.id());
     fornecedor.setBairro(dto.bairro());
     fornecedor.setComplemento(dto.complemento());
-    fornecedor.setCnpj(dto.cnpj());
-    fornecedor.setCpf(dto.cpf());
+    String cnpj=Documents.parse(dto.cnpj(),true,true);
+    if(cnpj!=null && fornecedorRepository.findAll().stream().anyMatch(r -> !r.getId().equals(fornecedor.getId()) && cnpj.equals(r.getCnpj())))throw new com.vilaverde.erp.exception.ConflictException("CNPJ já cadastrado");
+    fornecedor.setCnpj(cnpj);
+    String cpf=Documents.parse(dto.cpf(),false,true);
+    if(cpf!=null && fornecedorRepository.findAll().stream().anyMatch(r -> !r.getId().equals(fornecedor.getId()) && cpf.equals(r.getCpf())))throw new com.vilaverde.erp.exception.ConflictException("CPF já cadastrado");
+    fornecedor.setCpf(cpf);
   }
 
   private Fornecedor buscar(UUID id) {

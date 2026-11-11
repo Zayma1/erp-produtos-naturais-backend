@@ -35,7 +35,9 @@ public class ClienteService {
   public ClienteResponseDTO criar(ClienteRequestDTO dto) {
     Cliente cliente = new Cliente();
     cliente.setNome(dto.nome());
-    cliente.setCpf(dto.cpf());
+    String cpf=Documents.parse(dto.cpf(),false,true);
+    if(cpf!=null && clienteRepository.findAll().stream().anyMatch(r -> !r.getId().equals(cliente.getId()) && cpf.equals(r.getCpf())))throw new com.vilaverde.erp.exception.ConflictException("CPF já cadastrado");
+    cliente.setCpf(cpf);
     cliente.setDataNascimento(dto.dataNascimento());
     return ClienteResponseDTO.fromEntity(clienteRepository.save(cliente));
   }
@@ -44,7 +46,9 @@ public class ClienteService {
   public ClienteResponseDTO atualizar(UUID id, ClienteRequestDTO dto) {
     Cliente cliente = buscar(id);
     cliente.setNome(dto.nome());
-    cliente.setCpf(dto.cpf());
+    String cpf=Documents.parse(dto.cpf(),false,true);
+    if(cpf!=null && clienteRepository.findAll().stream().anyMatch(r -> !r.getId().equals(cliente.getId()) && cpf.equals(r.getCpf())))throw new com.vilaverde.erp.exception.ConflictException("CPF já cadastrado");
+    cliente.setCpf(cpf);
     cliente.setDataNascimento(dto.dataNascimento());
     return ClienteResponseDTO.fromEntity(clienteRepository.save(cliente));
   }

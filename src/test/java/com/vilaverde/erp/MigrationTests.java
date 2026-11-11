@@ -166,4 +166,27 @@ class MigrationTests {
   var ex=assertThrows(org.flywaydb.core.api.FlywayException.class,()->v8().migrate());assertTrue(ex.getMessage().contains("V8 exige base sem dados comerciais antigos"));
   var rs=connection.createStatement().executeQuery("select count(*) from produto_venda");rs.next();assertEquals(1,rs.getInt(1));
  }
+
+ Flyway stage14(String target){var config=Flyway.configure().dataSource(url,"stage7","local-stage7-only").locations("classpath:db/migration");if(target!=null)config.target(target);return config.load();}
+ @Test void maskedCnpjReproducesPostgresLengthErrorInOriginalSchema() throws Exception {
+  stage14("8").migrate();var st=connection.createStatement();
+  var error=assertThrows(SQLException.class,()->st.execute("insert into loja(id,cnpj,nome_fantasia,razao_social,bairro,cidade,estado,numero,status,criado_em) values ('"+UUID.randomUUID()+"','04.252.011/0001-10','L','L','B','C','SC','1','ATIVA',now())"));
+  assertEquals("22001",error.getSQLState());assertTrue(error.getMessage().contains("character varying(14)"));
+ }
+ @Test void stage14PreflightReportsInvalidDuplicateAndAmbiguousIdsWithoutWrites() throws Exception {
+  stage14("8").migrate();var st=connection.createStatement();UUID a=UUID.randomUUID(),b=UUID.randomUUID(),f=UUID.randomUUID();
+  st.execute("insert into cliente(id,nome,cpf,criado_em) values ('"+a+"','A','52998224725',now()),('"+b+"','B','529.982.247-25',now())");
+  st.execute("insert into fornecedor(id,nome_fantasia,razao_social,bairro,estado,cidade,cpf,cnpj,status) values ('"+f+"','F','F','B','SC','C','bad','bad','ATIVO')");
+  var error=assertThrows(org.flywaydb.core.api.FlywayException.class,()->stage14(null).migrate());
+  for(UUID id:List.of(a,b,f))assertTrue(error.getMessage().contains(id.toString()));
+  var rs=st.executeQuery("select count(*) from information_schema.columns where table_name='usuario' and column_name='usuario'");rs.next();assertEquals(0,rs.getInt(1));
+  rs=st.executeQuery("select cpf from cliente where id='"+b+"'");rs.next();assertEquals("529.982.247-25",rs.getString(1));
+ }
+ @Test void stage14MigratesStableUsernameCollisionsAndKeepsReport() throws Exception {
+  stage14("8").migrate();var st=connection.createStatement();
+  st.execute("insert into usuario(id,nome,email,cargo,senha_hash,status,criado_em) values ('00000000-0000-4000-8000-000000000001','Name','same@one.test','FUNC','test','ATIVO',now()),('00000000-0000-4000-8000-000000000002','Other','same@two.test','FUNC','test','ATIVO',now()),('00000000-0000-4000-8000-000000000003','Administrador','admin@vilaverde.local','ADMIN','test','ATIVO',now())");
+  stage14(null).migrate();stage14(null).migrate();
+  var rs=st.executeQuery("select usuario from usuario order by id");rs.next();assertEquals("same",rs.getString(1));rs.next();assertEquals("same-00000000",rs.getString(1));rs.next();assertEquals("admin",rs.getString(1));
+  rs=st.executeQuery("select count(*) from usuario_login_migracao");rs.next();assertEquals(3,rs.getInt(1));
+ }
 }

@@ -36,6 +36,9 @@ public class Loja {
   @Column(name = "cidade", nullable = false)
   private String cidade;
 
+  @Column(name="municipio_ibge")
+  private Integer municipioIbge;
+
   @NotBlank(message = "Bairro é obrigatório")
   @Column(name = "bairro")
   private String bairro;

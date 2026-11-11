@@ -1,3 +1,5 @@
+Etapa 14 (`stage14-forms-auth`): login por campo `usuario` real ou e-mail, recuperação SMTP com CSRF, validação de documentos e localidades IBGE. Consulte [configuração da etapa 14](docs/STAGE14_FORMS_AUTH.md). V1–V8 preservadas; V9 Java faz preflight e registra o mapa de usuários em `usuario_login_migracao`.
+
 # ERP Vila Verde — recebimento persistente
 
 ## Etapa 13 — variante comercial obrigatória

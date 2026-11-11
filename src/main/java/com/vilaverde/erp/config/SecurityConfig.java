@@ -20,8 +20,9 @@ public class SecurityConfig {
       .exceptionHandling(e -> e.authenticationEntryPoint((req,res,ex) -> json(res,401,"Autenticação necessária"))
         .accessDeniedHandler((req,res,ex) -> json(res,(org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication()==null || org.springframework.security.authentication.AnonymousAuthenticationToken.class.isInstance(org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication())) ? 401 : 403,"Acesso negado")))
       .authorizeHttpRequests(a -> a
-        .requestMatchers("/api/auth/csrf","/api/auth/login").permitAll()
+        .requestMatchers("/api/auth/csrf","/api/auth/login","/api/auth/esqueci-senha","/api/auth/redefinir-senha").permitAll()
         .requestMatchers("/api/auth/me","/api/auth/logout","/api/auth/alterar-senha").authenticated()
+        .requestMatchers("/api/localidades/**").authenticated()
         .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
         .requestMatchers(org.springframework.http.HttpMethod.GET,"/api/lojas/**").authenticated()
         .requestMatchers("/api/lojas/**").hasRole("ADMIN")

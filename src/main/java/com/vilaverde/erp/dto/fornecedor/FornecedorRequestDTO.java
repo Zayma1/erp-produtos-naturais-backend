@@ -8,6 +8,7 @@ public record FornecedorRequestDTO(
   @NotBlank(message = "Estado é obrigatório") String estado,
   @NotBlank(message = "Cidade é obrigatória") String cidade,
   @NotBlank(message = "Bairro é obrigatório") String bairro,
+  Integer municipioIbge,
   String complemento,
   String cnpj,
   String cpf
