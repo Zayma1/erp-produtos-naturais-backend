@@ -4,7 +4,10 @@
 */
 
 import type { ApiError } from './ApiError'
+import type { Confirmation } from './Confirmation'
 import type { PasswordReset } from './PasswordReset'
+
+export type RedefinirSenhaStatus200 = Confirmation;
 
 export type RedefinirSenhaStatus400 = ApiError;
 
@@ -18,10 +21,11 @@ export type RedefinirSenhaOptions = {
 };
 
 export type RedefinirSenhaResponses = {
+  '200': RedefinirSenhaStatus200;
   '400': RedefinirSenhaStatus400;
 };
 
 /**
  * @description Union of all possible responses
  */
-export type RedefinirSenhaResponse = RedefinirSenhaStatus400;
+export type RedefinirSenhaResponse = RedefinirSenhaStatus200;

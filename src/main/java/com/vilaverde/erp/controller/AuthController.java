@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.Operation;
 public class AuthController {
   private final LoginService login;
   private final PasswordRecoveryService recovery;
+  public record Confirmation(String message) {}
   public record Recovery(@NotBlank @Size(max=254) String login) {}
   public record PasswordReset(@NotBlank @Size(max=100) String token,@NotBlank @Size(min=8,max=72) String senha,@NotBlank String confirmacao) {}
   @PostMapping("/esqueci-senha") @Operation(operationId="solicitarRecuperacaoSenha")
@@ -24,7 +25,7 @@ public class AuthController {
     recovery.request(d.login());return Map.of("message","Se a conta existir, enviaremos um link para o e-mail cadastrado.");
   }
   @PostMapping("/redefinir-senha") @Operation(operationId="redefinirSenha")
-  @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode="400",description="Link inválido, expirado ou senha inválida",content=@io.swagger.v3.oas.annotations.media.Content(schema=@io.swagger.v3.oas.annotations.media.Schema(implementation=com.vilaverde.erp.exception.ApiError.class)))
+  @io.swagger.v3.oas.annotations.responses.ApiResponses({@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode="400",description="Link inválido, expirado ou senha inválida",content=@io.swagger.v3.oas.annotations.media.Content(schema=@io.swagger.v3.oas.annotations.media.Schema(implementation=com.vilaverde.erp.exception.ApiError.class))),@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode="200",description="Senha redefinida",content=@io.swagger.v3.oas.annotations.media.Content(schema=@io.swagger.v3.oas.annotations.media.Schema(implementation=Confirmation.class)))})
   public java.util.Map<String,String> reset(@Valid @RequestBody PasswordReset d) {
     recovery.reset(d.token(),d.senha(),d.confirmacao());return Map.of("message","Senha redefinida. Entre com sua nova senha.");
   }

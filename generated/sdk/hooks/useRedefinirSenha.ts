@@ -4,7 +4,7 @@
 */
 
 import type { RequestConfig, ResponseErrorConfig } from '../.kubb/client'
-import type { RedefinirSenhaOptions, RedefinirSenhaResponse, RedefinirSenhaStatus400 } from '../types/RedefinirSenha'
+import type { RedefinirSenhaOptions, RedefinirSenhaStatus200, RedefinirSenhaStatus400 } from '../types/RedefinirSenha'
 import type { UseMutationOptions, UseMutationResult, QueryClient } from '@tanstack/react-query'
 import { redefinirSenha } from '../clients/redefinirSenha'
 import { mutationOptions, useMutation } from '@tanstack/react-query'
@@ -13,7 +13,7 @@ export const redefinirSenhaMutationKey = () => [{ url: '/api/auth/redefinir-senh
 
 export function redefinirSenhaMutationOptions<TContext = unknown>(config: Partial<Omit<RequestConfig, 'path' | 'query' | 'body' | 'headers' | 'url'>> = {}) {
   const mutationKey = redefinirSenhaMutationKey()
-  return mutationOptions<RedefinirSenhaResponse, ResponseErrorConfig<RedefinirSenhaStatus400>, RedefinirSenhaOptions, TContext>({
+  return mutationOptions<RedefinirSenhaStatus200, ResponseErrorConfig<RedefinirSenhaStatus400>, RedefinirSenhaOptions, TContext>({
     mutationKey,
     mutationFn: async({ body }) => {
       return redefinirSenha({ ...config, body, throwOnError: true }).unwrap()
@@ -25,18 +25,18 @@ export function redefinirSenhaMutationOptions<TContext = unknown>(config: Partia
  * {@link /api/auth/redefinir-senha}
  */
 export function useRedefinirSenha<TContext>(options: {
-  mutation?: UseMutationOptions<RedefinirSenhaResponse, ResponseErrorConfig<RedefinirSenhaStatus400>, RedefinirSenhaOptions, TContext> & { client?: QueryClient },
+  mutation?: UseMutationOptions<RedefinirSenhaStatus200, ResponseErrorConfig<RedefinirSenhaStatus400>, RedefinirSenhaOptions, TContext> & { client?: QueryClient },
   client?: Partial<Omit<RequestConfig, 'path' | 'query' | 'body' | 'headers' | 'url'>>,
 } = {}) {
   const { mutation = {}, client: config = {} } = options ?? {}
   const { client: queryClient, ...mutationOptions } = mutation;
   const mutationKey = mutationOptions.mutationKey ?? redefinirSenhaMutationKey()
 
-  const baseOptions = redefinirSenhaMutationOptions(config) as UseMutationOptions<RedefinirSenhaResponse, ResponseErrorConfig<RedefinirSenhaStatus400>, RedefinirSenhaOptions, TContext>
+  const baseOptions = redefinirSenhaMutationOptions(config) as UseMutationOptions<RedefinirSenhaStatus200, ResponseErrorConfig<RedefinirSenhaStatus400>, RedefinirSenhaOptions, TContext>
 
-  return useMutation<RedefinirSenhaResponse, ResponseErrorConfig<RedefinirSenhaStatus400>, RedefinirSenhaOptions, TContext>({
+  return useMutation<RedefinirSenhaStatus200, ResponseErrorConfig<RedefinirSenhaStatus400>, RedefinirSenhaOptions, TContext>({
     ...baseOptions,
     mutationKey,
     ...mutationOptions,
-  }, queryClient) as UseMutationResult<RedefinirSenhaResponse, ResponseErrorConfig<RedefinirSenhaStatus400>, RedefinirSenhaOptions, TContext>
+  }, queryClient) as UseMutationResult<RedefinirSenhaStatus200, ResponseErrorConfig<RedefinirSenhaStatus400>, RedefinirSenhaOptions, TContext>
 }

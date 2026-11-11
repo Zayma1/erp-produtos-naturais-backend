@@ -5,6 +5,9 @@
 
 import type { ApiError } from './ApiError'
 import type { ClienteRequestDTO } from './ClienteRequestDTO'
+import type { ClienteResponseDTO } from './ClienteResponseDTO'
+
+export type CriarClienteStatus201 = ClienteResponseDTO;
 
 export type CriarClienteStatus400 = ApiError;
 
@@ -20,6 +23,7 @@ export type CriarClienteOptions = {
 };
 
 export type CriarClienteResponses = {
+  '201': CriarClienteStatus201;
   '400': CriarClienteStatus400;
   '409': CriarClienteStatus409;
 };
@@ -27,4 +31,4 @@ export type CriarClienteResponses = {
 /**
  * @description Union of all possible responses
  */
-export type CriarClienteResponse = CriarClienteStatus400 | CriarClienteStatus409;
+export type CriarClienteResponse = CriarClienteStatus201;

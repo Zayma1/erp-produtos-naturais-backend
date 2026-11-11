@@ -5,6 +5,9 @@
 
 import type { ApiError } from './ApiError'
 import type { UnidadeMedidaRequestDTO } from './UnidadeMedidaRequestDTO'
+import type { UnidadeMedidaResponseDTO } from './UnidadeMedidaResponseDTO'
+
+export type CriarUnidadeMedidaStatus201 = UnidadeMedidaResponseDTO;
 
 export type CriarUnidadeMedidaStatus400 = ApiError;
 
@@ -20,6 +23,7 @@ export type CriarUnidadeMedidaOptions = {
 };
 
 export type CriarUnidadeMedidaResponses = {
+  '201': CriarUnidadeMedidaStatus201;
   '400': CriarUnidadeMedidaStatus400;
   '409': CriarUnidadeMedidaStatus409;
 };
@@ -27,4 +31,4 @@ export type CriarUnidadeMedidaResponses = {
 /**
  * @description Union of all possible responses
  */
-export type CriarUnidadeMedidaResponse = CriarUnidadeMedidaStatus400 | CriarUnidadeMedidaStatus409;
+export type CriarUnidadeMedidaResponse = CriarUnidadeMedidaStatus201;

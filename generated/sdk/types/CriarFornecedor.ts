@@ -5,6 +5,9 @@
 
 import type { ApiError } from './ApiError'
 import type { FornecedorRequestDTO } from './FornecedorRequestDTO'
+import type { FornecedorResponseDTO } from './FornecedorResponseDTO'
+
+export type CriarFornecedorStatus201 = FornecedorResponseDTO;
 
 export type CriarFornecedorStatus400 = ApiError;
 
@@ -22,6 +25,7 @@ export type CriarFornecedorOptions = {
 };
 
 export type CriarFornecedorResponses = {
+  '201': CriarFornecedorStatus201;
   '400': CriarFornecedorStatus400;
   '409': CriarFornecedorStatus409;
   '503': CriarFornecedorStatus503;
@@ -30,4 +34,4 @@ export type CriarFornecedorResponses = {
 /**
  * @description Union of all possible responses
  */
-export type CriarFornecedorResponse = CriarFornecedorStatus400 | CriarFornecedorStatus409 | CriarFornecedorStatus503;
+export type CriarFornecedorResponse = CriarFornecedorStatus201;

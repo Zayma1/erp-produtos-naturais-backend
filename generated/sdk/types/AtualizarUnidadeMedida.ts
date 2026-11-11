@@ -5,6 +5,7 @@
 
 import type { ApiError } from './ApiError'
 import type { UnidadeMedidaRequestDTO } from './UnidadeMedidaRequestDTO'
+import type { UnidadeMedidaResponseDTO } from './UnidadeMedidaResponseDTO'
 
 export type AtualizarUnidadeMedidaPath = {
   /**
@@ -14,6 +15,8 @@ export type AtualizarUnidadeMedidaPath = {
    */
   id: string;
 };
+
+export type AtualizarUnidadeMedidaStatus200 = UnidadeMedidaResponseDTO;
 
 export type AtualizarUnidadeMedidaStatus400 = ApiError;
 
@@ -29,6 +32,7 @@ export type AtualizarUnidadeMedidaOptions = {
 };
 
 export type AtualizarUnidadeMedidaResponses = {
+  '200': AtualizarUnidadeMedidaStatus200;
   '400': AtualizarUnidadeMedidaStatus400;
   '409': AtualizarUnidadeMedidaStatus409;
 };
@@ -36,4 +40,4 @@ export type AtualizarUnidadeMedidaResponses = {
 /**
  * @description Union of all possible responses
  */
-export type AtualizarUnidadeMedidaResponse = AtualizarUnidadeMedidaStatus400 | AtualizarUnidadeMedidaStatus409;
+export type AtualizarUnidadeMedidaResponse = AtualizarUnidadeMedidaStatus200;

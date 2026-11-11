@@ -5,6 +5,7 @@
 
 import type { ApiError } from './ApiError'
 import type { FornecedorRequestDTO } from './FornecedorRequestDTO'
+import type { FornecedorResponseDTO } from './FornecedorResponseDTO'
 
 export type AtualizarFornecedorPath = {
   /**
@@ -14,6 +15,8 @@ export type AtualizarFornecedorPath = {
    */
   id: string;
 };
+
+export type AtualizarFornecedorStatus200 = FornecedorResponseDTO;
 
 export type AtualizarFornecedorStatus400 = ApiError;
 
@@ -31,6 +34,7 @@ export type AtualizarFornecedorOptions = {
 };
 
 export type AtualizarFornecedorResponses = {
+  '200': AtualizarFornecedorStatus200;
   '400': AtualizarFornecedorStatus400;
   '409': AtualizarFornecedorStatus409;
   '503': AtualizarFornecedorStatus503;
@@ -39,4 +43,4 @@ export type AtualizarFornecedorResponses = {
 /**
  * @description Union of all possible responses
  */
-export type AtualizarFornecedorResponse = AtualizarFornecedorStatus400 | AtualizarFornecedorStatus409 | AtualizarFornecedorStatus503;
+export type AtualizarFornecedorResponse = AtualizarFornecedorStatus200;

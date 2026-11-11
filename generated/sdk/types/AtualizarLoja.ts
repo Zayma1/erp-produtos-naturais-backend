@@ -5,6 +5,7 @@
 
 import type { ApiError } from './ApiError'
 import type { LojaRequestDTO } from './LojaRequestDTO'
+import type { LojaResponseDTO } from './LojaResponseDTO'
 
 export type AtualizarLojaPath = {
   /**
@@ -14,6 +15,8 @@ export type AtualizarLojaPath = {
    */
   id: string;
 };
+
+export type AtualizarLojaStatus200 = LojaResponseDTO;
 
 export type AtualizarLojaStatus400 = ApiError;
 
@@ -31,6 +34,7 @@ export type AtualizarLojaOptions = {
 };
 
 export type AtualizarLojaResponses = {
+  '200': AtualizarLojaStatus200;
   '400': AtualizarLojaStatus400;
   '409': AtualizarLojaStatus409;
   '503': AtualizarLojaStatus503;
@@ -39,4 +43,4 @@ export type AtualizarLojaResponses = {
 /**
  * @description Union of all possible responses
  */
-export type AtualizarLojaResponse = AtualizarLojaStatus400 | AtualizarLojaStatus409 | AtualizarLojaStatus503;
+export type AtualizarLojaResponse = AtualizarLojaStatus200;

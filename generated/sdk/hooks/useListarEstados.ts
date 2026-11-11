@@ -4,7 +4,7 @@
 */
 
 import type { RequestConfig, ResponseErrorConfig } from '../.kubb/client'
-import type { ListarEstadosResponse, ListarEstadosStatus503 } from '../types/ListarEstados'
+import type { ListarEstadosStatus200, ListarEstadosStatus503 } from '../types/ListarEstados'
 import type { QueryKey, QueryClient, QueryObserverOptions, UseQueryResult } from '@tanstack/react-query'
 import { listarEstados } from '../clients/listarEstados'
 import { queryOptions, useQuery } from '@tanstack/react-query'
@@ -15,7 +15,7 @@ type ListarEstadosQueryKey = ReturnType<typeof listarEstadosQueryKey>
 
 export function listarEstadosQueryOptions(config: Partial<Omit<RequestConfig, 'path' | 'query' | 'body' | 'headers' | 'url'>> = {}) {
   const queryKey = listarEstadosQueryKey()
-  return queryOptions<ListarEstadosResponse, ResponseErrorConfig<ListarEstadosStatus503>, ListarEstadosResponse, typeof queryKey>({
+  return queryOptions<ListarEstadosStatus200, ResponseErrorConfig<ListarEstadosStatus503>, ListarEstadosStatus200, typeof queryKey>({
    queryKey,
    queryFn: async ({ signal }) => {
       return listarEstados({ ...config, signal: config.signal ?? signal, throwOnError: true }).unwrap()
@@ -26,8 +26,8 @@ export function listarEstadosQueryOptions(config: Partial<Omit<RequestConfig, 'p
 /**
  * {@link /api/localidades/estados}
  */
-export function useListarEstados<TData = ListarEstadosResponse, TQueryData = ListarEstadosResponse, TQueryKey extends QueryKey = ListarEstadosQueryKey>(options: {
-  query?: Partial<QueryObserverOptions<ListarEstadosResponse, ResponseErrorConfig<ListarEstadosStatus503>, TData, TQueryData, TQueryKey>> & { client?: QueryClient },
+export function useListarEstados<TData = ListarEstadosStatus200, TQueryData = ListarEstadosStatus200, TQueryKey extends QueryKey = ListarEstadosQueryKey>(options: {
+  query?: Partial<QueryObserverOptions<ListarEstadosStatus200, ResponseErrorConfig<ListarEstadosStatus503>, TData, TQueryData, TQueryKey>> & { client?: QueryClient },
   client?: Partial<Omit<RequestConfig, 'path' | 'query' | 'body' | 'headers' | 'url'>>
 } = {}) {
   const { query: queryConfig = {}, client: config = {} } = options ?? {}

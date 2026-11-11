@@ -87,7 +87,11 @@ class ReturnsTests {
  @Autowired DevolucaoFornecedorService suppliers;
  @Test void exportOpenApi() throws Exception {
   var contract=mvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-  var schemas=new tools.jackson.databind.ObjectMapper().readTree(contract).get("components").get("schemas");
+  var document=new tools.jackson.databind.ObjectMapper().readTree(contract);
+  var schemas=document.get("components").get("schemas");
+  assertTrue(document.get("paths").get("/api/localidades/estados").get("get").get("responses").has("200"));
+  assertTrue(document.get("paths").get("/api/lojas").get("post").get("responses").has("201"));
+  assertTrue(document.get("paths").get("/api/auth/redefinir-senha").get("post").get("responses").has("200"));
   for(String field:List.of("token","senha","confirmacao"))assertTrue(schemas.get("PasswordReset").get("properties").has(field));
   assertFalse(schemas.get("Reset").get("properties").has("token"),"Administrative and public password reset schemas must remain distinct");
   java.nio.file.Files.writeString(java.nio.file.Path.of("openapi-stage14.json"),contract);
