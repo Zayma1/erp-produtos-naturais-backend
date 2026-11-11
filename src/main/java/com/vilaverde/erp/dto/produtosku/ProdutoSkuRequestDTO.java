@@ -10,7 +10,9 @@ public record ProdutoSkuRequestDTO(
   @NotNull(message = "Produto é obrigatório") UUID idProduto,
   StatusProduto status,
   @NotBlank(message = "SKU é obrigatório") String sku,
-  String ean13,
-  String dun14,
-  String descricaoApresentacao
+  @jakarta.validation.constraints.Pattern(regexp="(?:|[0-9]{13})") String ean13,
+  @jakarta.validation.constraints.Pattern(regexp="(?:|[0-9]{14})") String dun14,
+  @NotNull UUID idUnidadeMedida,
+  @NotNull com.vilaverde.erp.entity.enums.TipoVenda tipoVenda,
+  @NotBlank String descricaoApresentacao
 ) {}

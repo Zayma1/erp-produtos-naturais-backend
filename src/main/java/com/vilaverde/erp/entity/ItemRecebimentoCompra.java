@@ -11,7 +11,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ItemRecebimentoCompra {
+public class ItemRecebimentoCompra extends SkuSnapshot {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -26,11 +26,17 @@ public class ItemRecebimentoCompra {
   private ItemCompra itemCompra;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "id_produto", nullable = false)
-  private Produto produto;
+  @JoinColumn(name = "id_produto_sku", nullable = false)
+  private ProdutoSku produtoSku;
 
   @Column(nullable = false, precision = 14, scale = 3)
   private BigDecimal quantidade;
 
   private String observacao;
+
+  public void setProdutoSku(ProdutoSku sku) {
+    if (produtoSku == null || !produtoSku.getId().equals(sku.getId())) capture(sku);
+    produtoSku = sku;
+  }
+  public void setQuantidade(java.math.BigDecimal q) {produtoSku.validateQuantity(q);quantidade=q;}
 }

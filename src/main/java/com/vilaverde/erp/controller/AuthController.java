@@ -16,13 +16,26 @@ import io.swagger.v3.oas.annotations.Operation;
 @RestController @RequestMapping("/api/auth") @RequiredArgsConstructor
 public class AuthController {
   private final LoginService login;
+  private final PasswordRecoveryService recovery;
+  public record Confirmation(String message) {}
+  public record Recovery(@NotBlank @Size(max=254) String login) {}
+  public record PasswordReset(@NotBlank @Size(max=100) String token,@NotBlank @Size(min=8,max=72) String senha,@NotBlank String confirmacao) {}
+  @PostMapping("/esqueci-senha") @Operation(operationId="solicitarRecuperacaoSenha")
+  public java.util.Map<String,String> recover(@Valid @RequestBody Recovery d) {
+    recovery.request(d.login());return Map.of("message","Se a conta existir, enviaremos um link para o e-mail cadastrado.");
+  }
+  @PostMapping("/redefinir-senha") @Operation(operationId="redefinirSenha")
+  @io.swagger.v3.oas.annotations.responses.ApiResponses({@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode="400",description="Link inválido, expirado ou senha inválida",content=@io.swagger.v3.oas.annotations.media.Content(schema=@io.swagger.v3.oas.annotations.media.Schema(implementation=com.vilaverde.erp.exception.ApiError.class))),@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode="200",description="Senha redefinida",content=@io.swagger.v3.oas.annotations.media.Content(schema=@io.swagger.v3.oas.annotations.media.Schema(implementation=Confirmation.class)))})
+  public java.util.Map<String,String> reset(@Valid @RequestBody PasswordReset d) {
+    recovery.reset(d.token(),d.senha(),d.confirmacao());return Map.of("message","Senha redefinida. Entre com sua nova senha.");
+  }
   private final AccessScope scope;
   private final UsuarioService users;
   private final SecurityContextRepository contexts;
-  public record Login(@NotBlank @Size(max=254) String email,@NotBlank @Size(max=72) String senha) {}
+  public record Login(@NotBlank @Size(max=254) String login,@NotBlank @Size(max=72) String senha) {}
   public record Password(@NotBlank String senhaAtual,@NotBlank @Size(min=8,max=72) String novaSenha) {}
-  public record Identity(UUID id,String nome,String email,String cargo,Set<UUID> lojas,Set<String> permissions,boolean alterarSenha) {
-    public static Identity of(AuthPrincipal p) { return new Identity(p.id(),p.nome(),p.email(),p.cargo().name(),p.lojas(),p.permissions(),p.alterarSenha()); }
+  public record Identity(UUID id,String nome,String usuario,String email,String cargo,Set<UUID> lojas,Set<String> permissions,boolean alterarSenha) {
+    public static Identity of(AuthPrincipal p) { return new Identity(p.id(),p.nome(),p.usuario(),p.email(),p.cargo().name(),p.lojas(),p.permissions(),p.alterarSenha()); }
   }
   public record Csrf(String token,String headerName) {}
   public record Failure(String message) {}
@@ -35,8 +48,8 @@ public class AuthController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode="429",description="Bloqueio temporário de tentativas",content=@io.swagger.v3.oas.annotations.media.Content(schema=@io.swagger.v3.oas.annotations.media.Schema(implementation=Failure.class)))
   })
   public ResponseEntity<?> login(@Valid @RequestBody Login d,HttpServletRequest req,HttpServletResponse res) {
-    var r=login.login(d.email(),d.senha());
-    if(r.status()!=200) return ResponseEntity.status(r.status()).body(Map.of("message",r.status()==429 ? "Muitas tentativas. Aguarde 15 minutos." : "E-mail ou senha inválidos."));
+    var r=login.login(d.login(),d.senha());
+    if(r.status()!=200) return ResponseEntity.status(r.status()).body(Map.of("message",r.status()==429 ? "Muitas tentativas. Aguarde 15 minutos." : "Usuário, e-mail ou senha inválidos."));
     req.getSession();req.changeSessionId();req.getSession().setAttribute("authenticatedAt",System.currentTimeMillis());
     var context=SecurityContextHolder.createEmptyContext();
     context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(r.principal(),null,r.principal().getAuthorities()));

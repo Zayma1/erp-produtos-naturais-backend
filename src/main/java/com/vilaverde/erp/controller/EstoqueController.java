@@ -21,9 +21,10 @@ public class EstoqueController {
   @GetMapping
   public ResponseEntity<List<EstoqueResponseDTO>> listar(
     @RequestParam(required = false) UUID idProduto,
+    @RequestParam(required = false) UUID idProdutoSku,
     @RequestParam(required = false) UUID idLoja
   ) {
-    return ResponseEntity.ok(estoqueService.listar(idProduto, idLoja));
+    return ResponseEntity.ok(estoqueService.listar(idProduto, idProdutoSku, idLoja));
   }
 
   @Operation(operationId = "buscarEstoquePorId")
@@ -35,9 +36,9 @@ public class EstoqueController {
   @Operation(operationId = "consultarSaldoEstoque")
   @GetMapping("/saldo")
   public ResponseEntity<SaldoEstoqueResponseDTO> saldo(
-    @RequestParam UUID idProduto,
+    @RequestParam UUID idProdutoSku,
     @RequestParam UUID idLoja
   ) {
-    return ResponseEntity.ok(estoqueService.saldo(idProduto, idLoja));
+    return ResponseEntity.ok(estoqueService.saldo(idProdutoSku, idLoja));
   }
 }

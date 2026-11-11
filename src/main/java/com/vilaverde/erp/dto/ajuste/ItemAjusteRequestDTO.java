@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public record ItemAjusteRequestDTO(
   UUID id,
-  @NotNull UUID idProduto,
+  @NotNull UUID idProdutoSku,
   @NotNull TipoMovimentacao tipo,
   @NotNull @DecimalMin("0.001") BigDecimal quantidade,
   String observacao

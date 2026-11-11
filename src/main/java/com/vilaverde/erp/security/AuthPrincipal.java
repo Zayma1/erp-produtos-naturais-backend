@@ -5,10 +5,10 @@ import java.util.*;
 import org.springframework.security.core.*;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-public record AuthPrincipal(UUID id, String email, String nome, CargoUsuario cargo, Set<UUID> lojas,
+public record AuthPrincipal(UUID id, String email, String usuario, String nome, CargoUsuario cargo, Set<UUID> lojas,
   long version, boolean alterarSenha, boolean enabled, String password) implements UserDetails {
   public static AuthPrincipal of(Usuario u, boolean credential) {
-    return new AuthPrincipal(u.getId(),u.getEmail(),u.getNome(),u.getCargo(),Set.copyOf(u.getLojas()),
+    return new AuthPrincipal(u.getId(),u.getEmail(),u.getUsuario(),u.getNome(),u.getCargo(),Set.copyOf(u.getLojas()),
       u.getAuthVersion(),u.isAlterarSenha(),u.isRevisado() && u.getStatus()==StatusCadastro.ATIVO,credential ? u.getSenhaHash() : null);
   }
   @Override public Collection<? extends GrantedAuthority> getAuthorities() { return List.of(new SimpleGrantedAuthority("ROLE_"+cargo.name())); }

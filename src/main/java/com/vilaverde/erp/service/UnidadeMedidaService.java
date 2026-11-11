@@ -35,7 +35,9 @@ public class UnidadeMedidaService {
   public UnidadeMedidaResponseDTO criar(UnidadeMedidaRequestDTO dto) {
     UnidadeMedida unidade = new UnidadeMedida();
     unidade.setSigla(dto.sigla());
-    unidade.setNome(dto.nome());
+    String name=dto.nome().strip().replaceAll("\\s+"," ");
+    if(unidadeMedidaRepository.findAll().stream().anyMatch(r -> !r.getId().equals(unidade.getId()) && name.equalsIgnoreCase(r.getNome().strip().replaceAll("\\s+"," "))))throw new com.vilaverde.erp.exception.ConflictException("Nome de unidade já cadastrado");
+    unidade.setNome(name);
     return UnidadeMedidaResponseDTO.fromEntity(
       unidadeMedidaRepository.save(unidade)
     );
@@ -48,7 +50,9 @@ public class UnidadeMedidaService {
   ) {
     UnidadeMedida unidade = buscar(id);
     unidade.setSigla(dto.sigla());
-    unidade.setNome(dto.nome());
+    String name=dto.nome().strip().replaceAll("\\s+"," ");
+    if(unidadeMedidaRepository.findAll().stream().anyMatch(r -> !r.getId().equals(unidade.getId()) && name.equalsIgnoreCase(r.getNome().strip().replaceAll("\\s+"," "))))throw new com.vilaverde.erp.exception.ConflictException("Nome de unidade já cadastrado");
+    unidade.setNome(name);
     return UnidadeMedidaResponseDTO.fromEntity(
       unidadeMedidaRepository.save(unidade)
     );

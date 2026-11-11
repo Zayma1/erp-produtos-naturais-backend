@@ -44,10 +44,10 @@ class SalesTests {
     loja=UUID.randomUUID(); usuario=UUID.randomUUID(); produto=UUID.randomUUID();
     UUID categoria=UUID.randomUUID(), unidade=UUID.randomUUID(), fornecedor=UUID.randomUUID();
     sql.update("insert into loja(id,cnpj,nome_fantasia,razao_social,bairro,cidade,estado,numero,status,criado_em) values (?,'12345678901234','Loja','Loja','B','C','SC','1','ATIVA',now())",loja);
-    sql.update("insert into usuario(id,nome,email,cargo,senha_hash,status,criado_em) values (?,'Operador','op@example.test','ADMIN','test-only','ATIVO',now())",usuario);
+    sql.update("insert into usuario(id,nome,email,usuario,cargo,senha_hash,status,criado_em) values (?,'Operador','op@example.test','operador','ADMIN','test-only','ATIVO',now())",usuario);
     sql.update("insert into categoria values (?,'Categoria')",categoria);
     sql.update("insert into unidade_medida(id,nome,sigla) values (?,'Unidade','UN')",unidade);
-    sql.update("insert into produto(id,nome,id_categoria,id_unidade_medida,tipo_venda,status,criado_em) values (?,'Produto',?,?,'UNIDADE','ATIVO',now())",produto,categoria,unidade);
+    SkuFixtures.create(sql,produto,categoria,unidade,"Produto");
     sql.update("insert into fornecedor(id,nome_fantasia,razao_social,estado,cidade,bairro,status) values (?,'Fornecedor','F','SC','C','B','ATIVO')",fornecedor);
     sql.update("update usuario set revisado=true,alterar_senha=false where id=?",usuario);
     var principal=com.vilaverde.erp.security.AuthPrincipal.of(users.findById(usuario).orElseThrow(),false);
@@ -65,7 +65,7 @@ class SalesTests {
   }
   UUID purchaseItem(UUID compra,UUID produto,String q) {
     UUID id=UUID.randomUUID();
-    sql.update("insert into item_compra(id,id_compra,id_produto,quantidade,quantidade_recebida,custo_unitario,desconto,total_item) values (?,?,?,?,0,10,0,100)",id,compra,produto,new BigDecimal(q)); return id;
+    sql.update("insert into item_compra(id,id_compra,id_produto_sku,quantidade,quantidade_recebida,custo_unitario,desconto,total_item) values (?,?,?,?,0,10,0,100)",id,compra,produto,new BigDecimal(q)); return id;
   }
   @Autowired VendaService sales;
   UUID customer;
@@ -73,7 +73,7 @@ class SalesTests {
   ProdutoVendaRequestDTO row(UUID id,UUID product,String q,String price,String discount) {return new ProdutoVendaRequestDTO(id,product,new BigDecimal(q),new BigDecimal(price),new BigDecimal(discount));}
   VendaRequestDTO request(Integer version,List<ProdutoVendaRequestDTO> rows) {return new VendaRequestDTO(version,null,null,customer,null,loja,"Observação",rows);}
   VendaResponseDTO sale(String q) {return sales.criar(UUID.randomUUID(),request(null,List.of(row(null,produto,q,"5","0"))));}
-  void stock(String q) {sql.update("insert into estoque_produto(id,id_produto,id_loja,quantidade_atual,atualizado_em) values (?,?,?,?,now())",UUID.randomUUID(),produto,loja,new BigDecimal(q));}
+  void stock(String q) {sql.update("insert into estoque_produto(id,id_produto_sku,id_loja,quantidade_atual,atualizado_em) values (?,?,?,?,now())",UUID.randomUUID(),produto,loja,new BigDecimal(q));}
   BigDecimal balance() {return sql.queryForObject("select coalesce(sum(quantidade_atual),0) from estoque_produto",BigDecimal.class);}
   long movements() {return sql.queryForObject("select count(*) from movimentacao_estoque",Long.class);}
   void amount(String n,BigDecimal v) {assertEquals(0,new BigDecimal(n).compareTo(v));}
@@ -138,8 +138,8 @@ class SalesTests {
   @Test void movementFailureRollsBackAllEffects() {
     stock("5");
     UUID second=UUID.randomUUID();
-    sql.update("insert into produto(id,nome,id_categoria,id_unidade_medida,tipo_venda,status,criado_em) select ?,'Second',id_categoria,id_unidade_medida,tipo_venda,status,now() from produto where id=?",second,produto);
-    sql.update("insert into estoque_produto(id,id_produto,id_loja,quantidade_atual,atualizado_em) values (?,?,?,5,now())",UUID.randomUUID(),second,loja);
+    SkuFixtures.cloneSku(sql,second,produto,"Second");
+    sql.update("insert into estoque_produto(id,id_produto_sku,id_loja,quantidade_atual,atualizado_em) values (?,?,?,5,now())",UUID.randomUUID(),second,loja);
     var a=sales.criar(UUID.randomUUID(),request(null,List.of(row(null,produto,"2","1","0"),row(null,second,"2","1","0"))));
     sql.execute("create function fail_sale_movement() returns trigger language plpgsql as $$ begin raise exception 'forced rollback'; end $$");
     sql.execute("create trigger fail_sale_movement before insert on movimentacao_estoque for each row execute function fail_sale_movement()");
@@ -148,7 +148,7 @@ class SalesTests {
   }
   @Test void creatorRemainsStableAndCreationReplayBelongsToItsActor() {
     stock("5");UUID key=UUID.randomUUID();var d=request(null,List.of(row(null,produto,"1","1","0")));var a=sales.criar(key,d);
-    UUID modifier=UUID.randomUUID();sql.update("insert into usuario(id,nome,email,cargo,senha_hash,status,criado_em,revisado,alterar_senha) values (?,'Modifier','modifier@example.test','ADMIN','test','ATIVO',now(),true,false)",modifier);
+    UUID modifier=UUID.randomUUID();sql.update("insert into usuario(id,nome,email,usuario,cargo,senha_hash,status,criado_em,revisado,alterar_senha) values (?,'Modifier','modifier@example.test','modifier','ADMIN','test','ATIVO',now(),true,false)",modifier);
     var principal=com.vilaverde.erp.security.AuthPrincipal.of(users.findById(modifier).orElseThrow(),false);
     org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(principal,null,principal.getAuthorities()));
     assertThrows(ResourceNotFoundException.class,()->sales.criar(key,d));

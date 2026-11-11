@@ -7,5 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ProdutoPrecoLojaRepository
   extends JpaRepository<ProdutoPrecoLoja, UUID>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<ProdutoPrecoLoja>
 {
-  List<ProdutoPrecoLoja> findByProdutoIdAndLojaId(UUID idProduto, UUID idLoja);
+  List<ProdutoPrecoLoja> findByProdutoSkuIdAndLojaId(UUID idProduto, UUID idLoja);
 }

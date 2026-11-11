@@ -34,6 +34,7 @@ public class UnidadeMedidaController {
   }
 
   @Operation(operationId = "criarUnidadeMedida")
+  @io.swagger.v3.oas.annotations.responses.ApiResponses({@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode="201",description="Registro salvo",content=@io.swagger.v3.oas.annotations.media.Content(schema=@io.swagger.v3.oas.annotations.media.Schema(implementation=com.vilaverde.erp.dto.unidademedida.UnidadeMedidaResponseDTO.class))),@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode="400",description="Formato, tamanho ou combinação de campos inválida",content=@io.swagger.v3.oas.annotations.media.Content(schema=@io.swagger.v3.oas.annotations.media.Schema(implementation=com.vilaverde.erp.exception.ApiError.class))),@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode="409",description="Documento ou nome único já cadastrado",content=@io.swagger.v3.oas.annotations.media.Content(schema=@io.swagger.v3.oas.annotations.media.Schema(implementation=com.vilaverde.erp.exception.ApiError.class)))})
   @PostMapping
   public ResponseEntity<UnidadeMedidaResponseDTO> criar(
     @Valid @RequestBody UnidadeMedidaRequestDTO dto
@@ -44,6 +45,7 @@ public class UnidadeMedidaController {
   }
 
   @Operation(operationId = "atualizarUnidadeMedida")
+  @io.swagger.v3.oas.annotations.responses.ApiResponses({@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode="200",description="Registro salvo",content=@io.swagger.v3.oas.annotations.media.Content(schema=@io.swagger.v3.oas.annotations.media.Schema(implementation=com.vilaverde.erp.dto.unidademedida.UnidadeMedidaResponseDTO.class))),@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode="400",description="Formato, tamanho ou combinação de campos inválida",content=@io.swagger.v3.oas.annotations.media.Content(schema=@io.swagger.v3.oas.annotations.media.Schema(implementation=com.vilaverde.erp.exception.ApiError.class))),@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode="409",description="Documento ou nome único já cadastrado",content=@io.swagger.v3.oas.annotations.media.Content(schema=@io.swagger.v3.oas.annotations.media.Schema(implementation=com.vilaverde.erp.exception.ApiError.class)))})
   @PutMapping("/{id}")
   public ResponseEntity<UnidadeMedidaResponseDTO> atualizar(
     @PathVariable UUID id,

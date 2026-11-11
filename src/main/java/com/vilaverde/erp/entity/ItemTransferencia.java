@@ -11,10 +11,8 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ItemTransferencia {
+public class ItemTransferencia extends SkuSnapshot {
 
-  @Column(name="unidade_sigla_snapshot", length=10)
-  private String unidadeSiglaSnapshot;
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -25,9 +23,15 @@ public class ItemTransferencia {
   private TransferenciaEstoque transferencia;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "id_produto", nullable = false)
-  private Produto produto;
+  @JoinColumn(name = "id_produto_sku", nullable = false)
+  private ProdutoSku produtoSku;
 
   @Column(nullable = false, precision = 14, scale = 3)
   private BigDecimal quantidade;
+
+  public void setProdutoSku(ProdutoSku sku) {
+    if (produtoSku == null || !produtoSku.getId().equals(sku.getId())) capture(sku);
+    produtoSku = sku;
+  }
+  public void setQuantidade(java.math.BigDecimal q) {produtoSku.validateQuantity(q);quantidade=q;}
 }

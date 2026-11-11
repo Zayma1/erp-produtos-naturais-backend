@@ -1,6 +1,7 @@
 package com.vilaverde.erp.exception;
 
 import java.util.List;
+import java.util.Objects;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -54,12 +55,26 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiError> handleIntegrity(
     DataIntegrityViolationException ex
   ) {
-    ApiError error = new ApiError(
-      HttpStatus.CONFLICT.value(),
-      "Violação de integridade",
-      "Registro em uso ou valor duplicado"
-    );
-    return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    Throwable cause=ex;while(cause.getCause()!=null)cause=cause.getCause();
+    String state=cause instanceof java.sql.SQLException sql ? sql.getSQLState() : "";
+    String detail=Objects.toString(cause.getMessage(),"");
+    String message="Conflito de integridade";int status=409;
+    if("23505".equals(state)) {
+      if(detail.contains("cliente_cpf_unique"))message="CPF de cliente já cadastrado";
+      else if(detail.contains("fornecedor_cpf_unique"))message="CPF de fornecedor já cadastrado";
+      else if(detail.contains("fornecedor_cnpj_unique"))message="CNPJ de fornecedor já cadastrado";
+      else if(detail.contains("loja_cnpj_unique"))message="CNPJ de loja já cadastrado";
+      else if(detail.contains("unidade_nome_unique"))message="Nome de unidade já cadastrado";
+      else if(detail.contains("usuario_login_unique"))message="Usuário já cadastrado";
+      else message="Valor único já cadastrado";
+    } else if("23503".equals(state))message="Registro em uso ou referência inválida";
+    else if("22001".equals(state) || "23514".equals(state) || "23502".equals(state)) {status=400;message="Formato, tamanho ou combinação de campos inválida";}
+    else {status=500;message="Não foi possível persistir o registro";}
+    return ResponseEntity.status(status).body(new ApiError(status,"Integridade",message));
+  }
+  @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+  public ResponseEntity<ApiError> unavailable(org.springframework.web.server.ResponseStatusException ex) {
+    return ResponseEntity.status(ex.getStatusCode()).body(new ApiError(ex.getStatusCode().value(),"Serviço indisponível",ex.getReason()));
   }
 
   @ExceptionHandler(InvalidInputException.class)

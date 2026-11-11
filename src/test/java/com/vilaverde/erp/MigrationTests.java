@@ -22,7 +22,7 @@ class MigrationTests {
     if(connection!=null) connection.close();
     try(var c=DriverManager.getConnection(admin,"stage7","local-stage7-only")) { c.createStatement().execute("drop database "+name+" with (force)"); }
   }
-  Flyway flyway() { return Flyway.configure().dataSource(url,"stage7","local-stage7-only").baselineOnMigrate(false).locations("classpath:db/migration").load(); }
+  Flyway flyway() { return Flyway.configure().dataSource(url,"stage7","local-stage7-only").baselineOnMigrate(false).target("7").locations("classpath:db/migration").load(); }
   void legacy() { new ResourceDatabasePopulator(new ClassPathResource("db/migration/V1__legacy_schema.sql")).execute(new SingleConnectionDataSource(connection,true)); }
   @Test void emptyDatabaseAndReconnectRetainOperationalData() throws Exception {
     flyway().migrate();
@@ -154,5 +154,39 @@ class MigrationTests {
   r=connection.createStatement().executeQuery("select devolucao_cliente_legada('00000000-0000-4000-8000-000000000005'),devolucao_cliente_quantidade('00000000-0000-4000-8000-000000000006'),devolucao_fornecedor_legada('00000000-0000-4000-8000-000000000010')");r.next();assertTrue(r.getBoolean(1));assertEquals(0,r.getBigDecimal(2).signum());assertTrue(r.getBoolean(3));
   r=connection.createStatement().executeQuery("select count(*) from movimentacao_estoque");r.next();assertEquals(0,r.getInt(1));
   r=connection.createStatement().executeQuery("select quantidade,retorna_ao_estoque from item_devolucao_cliente where id='"+i+"'");r.next();assertEquals(1,r.getInt(1));assertFalse(r.getBoolean(2));
+ }
+
+ Flyway v8() {return Flyway.configure().dataSource(url,"stage7","local-stage7-only").locations("classpath:db/migration").load();}
+ @Test void stage13EmptyInstallAndReconnect() throws Exception {
+  v8().migrate();connection.close();connection=DriverManager.getConnection(url,"stage7","local-stage7-only");v8().migrate();
+  var rs=connection.createStatement().executeQuery("select count(*) from information_schema.columns where table_name='produto_sku' and column_name in ('id_unidade_medida','tipo_venda')");rs.next();assertEquals(2,rs.getInt(1));
+ }
+ @Test void stage13RejectsCommercialDataWithoutMapping() throws Exception {
+  salesLegacy("ABERTA",false);flyway().migrate();
+  var ex=assertThrows(org.flywaydb.core.api.FlywayException.class,()->v8().migrate());assertTrue(ex.getMessage().contains("V8 exige base sem dados comerciais antigos"));
+  var rs=connection.createStatement().executeQuery("select count(*) from produto_venda");rs.next();assertEquals(1,rs.getInt(1));
+ }
+
+ Flyway stage14(String target){var config=Flyway.configure().dataSource(url,"stage7","local-stage7-only").locations("classpath:db/migration");if(target!=null)config.target(target);return config.load();}
+ @Test void maskedCnpjReproducesPostgresLengthErrorInOriginalSchema() throws Exception {
+  stage14("8").migrate();var st=connection.createStatement();
+  var error=assertThrows(SQLException.class,()->st.execute("insert into loja(id,cnpj,nome_fantasia,razao_social,bairro,cidade,estado,numero,status,criado_em) values ('"+UUID.randomUUID()+"','04.252.011/0001-10','L','L','B','C','SC','1','ATIVA',now())"));
+  assertEquals("22001",error.getSQLState());assertTrue(error.getMessage().contains("character varying(14)"));
+ }
+ @Test void stage14PreflightReportsInvalidDuplicateAndAmbiguousIdsWithoutWrites() throws Exception {
+  stage14("8").migrate();var st=connection.createStatement();UUID a=UUID.randomUUID(),b=UUID.randomUUID(),f=UUID.randomUUID();
+  st.execute("insert into cliente(id,nome,cpf,criado_em) values ('"+a+"','A','52998224725',now()),('"+b+"','B','529.982.247-25',now())");
+  st.execute("insert into fornecedor(id,nome_fantasia,razao_social,bairro,estado,cidade,cpf,cnpj,status) values ('"+f+"','F','F','B','SC','C','bad','bad','ATIVO')");
+  var error=assertThrows(org.flywaydb.core.api.FlywayException.class,()->stage14(null).migrate());
+  for(UUID id:List.of(a,b,f))assertTrue(error.getMessage().contains(id.toString()));
+  var rs=st.executeQuery("select count(*) from information_schema.columns where table_name='usuario' and column_name='usuario'");rs.next();assertEquals(0,rs.getInt(1));
+  rs=st.executeQuery("select cpf from cliente where id='"+b+"'");rs.next();assertEquals("529.982.247-25",rs.getString(1));
+ }
+ @Test void stage14MigratesStableUsernameCollisionsAndKeepsReport() throws Exception {
+  stage14("8").migrate();var st=connection.createStatement();
+  st.execute("insert into usuario(id,nome,email,cargo,senha_hash,status,criado_em) values ('00000000-0000-4000-8000-000000000001','Name','same@one.test','FUNC','test','ATIVO',now()),('00000000-0000-4000-8000-000000000002','Other','same@two.test','FUNC','test','ATIVO',now()),('00000000-0000-4000-8000-000000000003','Administrador','admin@vilaverde.local','ADMIN','test','ATIVO',now())");
+  stage14(null).migrate();stage14(null).migrate();
+  var rs=st.executeQuery("select usuario from usuario order by id");rs.next();assertEquals("same",rs.getString(1));rs.next();assertEquals("same-00000000",rs.getString(1));rs.next();assertEquals("admin",rs.getString(1));
+  rs=st.executeQuery("select count(*) from usuario_login_migracao");rs.next();assertEquals(3,rs.getInt(1));
  }
 }

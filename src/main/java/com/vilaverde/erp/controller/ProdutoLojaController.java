@@ -13,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/produtos-loja")
+@RequestMapping("/api/skus-loja")
 @RequiredArgsConstructor
 public class ProdutoLojaController {
 
@@ -23,9 +23,10 @@ public class ProdutoLojaController {
   @GetMapping
   public ResponseEntity<List<ProdutoLojaResponseDTO>> listar(
     @RequestParam(required = false) UUID idProduto,
+    @RequestParam(required = false) UUID idProdutoSku,
     @RequestParam(required = false) UUID idLoja
   ) {
-    return ResponseEntity.ok(produtoLojaService.listar(idProduto, idLoja));
+    return ResponseEntity.ok(produtoLojaService.listar(idProduto, idProdutoSku, idLoja));
   }
 
   @Operation(operationId = "buscarProdutoLojaPorId")

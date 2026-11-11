@@ -11,6 +11,7 @@ public record LojaResponseDTO(
   String cidade,
   String bairro,
   String numero,
+  Integer municipioIbge,
   String complemento,
   String cnpj
 ) {
@@ -23,6 +24,7 @@ public record LojaResponseDTO(
       loja.getCidade(),
       loja.getBairro(),
       loja.getNumero(),
+      loja.getMunicipioIbge(),
       loja.getComplemento(),
       loja.getCnpj()
     );

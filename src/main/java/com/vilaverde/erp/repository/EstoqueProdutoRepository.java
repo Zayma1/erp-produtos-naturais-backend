@@ -9,14 +9,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface EstoqueProdutoRepository
   extends JpaRepository<EstoqueProduto, UUID>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<EstoqueProduto>
 {
-  List<EstoqueProduto> findByProdutoIdAndLojaId(UUID idProduto, UUID idLoja);
+  List<EstoqueProduto> findByProdutoSkuIdAndLojaId(UUID idProduto, UUID idLoja);
 
-  Optional<EstoqueProduto> findFirstByProdutoIdAndLojaId(
+  Optional<EstoqueProduto> findFirstByProdutoSkuIdAndLojaId(
     UUID idProduto,
     UUID idLoja
   );
 
-  List<EstoqueProduto> findByProdutoId(UUID idProduto);
+  List<EstoqueProduto> findByProdutoSkuId(UUID idProduto);
 
   List<EstoqueProduto> findByLojaId(UUID idLoja);
 }

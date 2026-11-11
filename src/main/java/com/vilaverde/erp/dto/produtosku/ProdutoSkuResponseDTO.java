@@ -12,6 +12,9 @@ public record ProdutoSkuResponseDTO(
   String sku,
   String ean13,
   String dun14,
+  UUID idUnidadeMedida,
+  String siglaUnidadeMedida,
+  com.vilaverde.erp.entity.enums.TipoVenda tipoVenda,
   String descricaoApresentacao
 ) {
   public static ProdutoSkuResponseDTO fromEntity(ProdutoSku s) {
@@ -23,6 +26,9 @@ public record ProdutoSkuResponseDTO(
       s.getSku(),
       s.getEan13(),
       s.getDun14(),
+      s.getUnidadeMedida().getId(),
+      s.getUnidadeMedida().getSigla(),
+      s.getTipoVenda(),
       s.getDescricaoApresentacao()
     );
   }

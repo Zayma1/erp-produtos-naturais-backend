@@ -9,6 +9,7 @@ public record LojaRequestDTO(
   @NotBlank(message = "Cidade é obrigatória") String cidade,
   @NotBlank(message = "Bairro é obrigatório") String bairro,
   @NotBlank(message = "Número é obrigatório") String numero,
+  Integer municipioIbge,
   String complemento,
   @NotBlank(message = "CNPJ é obrigatório") String cnpj
 ) {}

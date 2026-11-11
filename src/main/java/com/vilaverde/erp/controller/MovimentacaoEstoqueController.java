@@ -18,9 +18,10 @@ public class MovimentacaoEstoqueController {
   @GetMapping
   public List<MovimentacaoResponseDTO> listar(
     @RequestParam(required = false) UUID idProduto,
+    @RequestParam(required = false) UUID idProdutoSku,
     @RequestParam(required = false) UUID idLoja
   ) {
-    return service.listar(idProduto, idLoja);
+    return service.listar(idProduto, idProdutoSku, idLoja);
   }
 
   @Operation(operationId = "buscarMovimentacaoEstoquePorId")

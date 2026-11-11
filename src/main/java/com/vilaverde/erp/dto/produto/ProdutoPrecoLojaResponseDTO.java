@@ -8,6 +8,7 @@ import java.util.UUID;
 public record ProdutoPrecoLojaResponseDTO(
   UUID id,
   UUID idProduto,
+  UUID idProdutoSku,
   UUID idLoja,
   BigDecimal preco,
   OffsetDateTime dataInicio,
@@ -17,7 +18,8 @@ public record ProdutoPrecoLojaResponseDTO(
   public static ProdutoPrecoLojaResponseDTO fromEntity(ProdutoPrecoLoja e) {
     return new ProdutoPrecoLojaResponseDTO(
       e.getId(),
-      e.getProduto().getId(),
+      e.getProdutoSku().getProduto().getId(),
+      e.getProdutoSku().getId(),
       e.getLoja().getId(),
       e.getPreco(),
       e.getDataInicio(),

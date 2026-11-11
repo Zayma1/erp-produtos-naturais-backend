@@ -36,6 +36,9 @@ public class Loja {
   @Column(name = "cidade", nullable = false)
   private String cidade;
 
+  @Column(name="municipio_ibge")
+  private Integer municipioIbge;
+
   @NotBlank(message = "Bairro é obrigatório")
   @Column(name = "bairro")
   private String bairro;
@@ -48,7 +51,7 @@ public class Loja {
   private String complemento;
 
   @NotBlank(message = "CNPJ é obrigatório")
-  @Column(name = "cnpj", nullable = false, length = 18)
+  @Column(name = "cnpj", nullable = false, length = 14)
   private String cnpj;
 
   private String logradouro;

@@ -1,4 +1,21 @@
+Etapa 14 (`stage14-forms-auth`): login por campo `usuario` real ou e-mail, recuperação SMTP com CSRF, validação de documentos e localidades IBGE. Consulte [configuração da etapa 14](docs/STAGE14_FORMS_AUTH.md). V1–V8 preservadas; V9 Java faz preflight e registra o mapa de usuários em `usuario_login_migracao`.
+
 # ERP Vila Verde — recebimento persistente
+
+## Etapa 13 — variante comercial obrigatória
+
+Branch `stage13-sku-variants`, base `novaVersao` em `f38a335774b5f4b998514109e543932ed2cc8fe6`. As descrições anteriores das etapas 7–12 abaixo são históricas. Produto contém informações gerais; SKU exige apresentação, unidade e tipo de venda. Todos os itens comerciais usam `idProdutoSku`, com `idProduto` derivado nas respostas. O estoque é único por SKU + loja; todos os escritores usam ordem SKU-ID → loja-ID.
+
+Cadastro: `/api/produtos-sku`. Vínculos: `/api/skus-loja`. Preços: `/api/skus-precos-loja`; as rotas por produto foram removidas da segurança e dos controllers. Consultas de estoque/movimentos e vínculos/preços combinam `idProduto`, `idProdutoSku` e `idLoja`; `/api/estoques/saldo` exige `idProdutoSku` + `idLoja`.
+
+Código/apresentação/unidade são snapshots nos documentos. Recebimentos e devoluções herdam o SKU e os snapshots da origem. UNIDADE exige inteiros e PESO admite até três casas; o servidor valida também recebimentos/devoluções e o banco aplica a proteção de quantidade/snapshot. SKU utilizado não pode mudar produto/unidade/tipo nem ser excluído: use inativação. Documentos existentes e devoluções de SKU inativo continuam operacionais conforme suas permissões.
+
+V1–V7 são imutáveis; V8 recusa dados comerciais antigos e solicita reset exclusivo de desenvolvimento. Execute `bash scripts/reset-development.sh` para recriar somente o container local identificado `vila-verde-stage13-development`, sem volumes ou endpoints externos; migrations e bootstrap existentes são aplicados. Credenciais locais ficam em `/tmp/vila-verde-stage13-development.env` com permissão 600. Não execute esse reset sobre ambientes compartilhados. Nenhuma configuração publicada é alterada.
+
+Valide com `bash scripts/test-postgres.sh`. `ReturnsTests` cobre variantes unitárias/granel, falta isolada, snapshots, herança, inativação e concorrência; `MigrationTests` cobre instalação vazia, reconexão e recusa V7 preenchida, além dos testes históricos V1–V7. Exporte OpenAPI autenticado por `ReturnsTests.exportOpenApi`; gere o SDK integral com `OPENAPI_FILE=openapi-stage13.json npm run sdk:generate`, usando o lock existente. Não editar os arquivos gerados.
+
+Sem conversão de embalagens, atributos combinatórios, preço automático, merge ou deploy.
+
 
 Java 21, PostgreSQL 16. Configure `DB_URL` (JDBC PostgreSQL), `DB_USER`, `DB_PASSWORD` e execute `bash mvnw spring-boot:run`. O perfil prod também aceita `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`. Todas as configurações normais usam Hibernate `validate` e Flyway com baseline automático desabilitado. Não existe recriação de tabelas no boot. Use banco vazio para começar; não aponte testes para um banco compartilhado.
 

@@ -25,6 +25,9 @@ public class Usuario {
   @Column(name = "nome", nullable = false)
   private String nome;
 
+  @Column(name="usuario",nullable=false,length=32)
+  private String usuario;
+
   @NotBlank(message = "E-mail é obrigatório")
   @Column(name = "email", nullable = false, unique = true)
   private String email;

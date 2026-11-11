@@ -48,7 +48,7 @@ class AuthenticationTests {
       return http.send(r.method(method,body==null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body))).build(),HttpResponse.BodyHandlers.ofString());
     }
     void renew() throws Exception {csrf=json.readTree(call("GET","/api/auth/csrf",null,false).body()).get("token").asText();}
-    HttpResponse<String> login(String email,String password) throws Exception { var result=call("POST","/api/auth/login",Map.of("email",email,"senha",password),true);csrf=null;return result; }
+    HttpResponse<String> login(String email,String password) throws Exception { var result=call("POST","/api/auth/login",Map.of("login",email,"senha",password),true);csrf=null;return result; }
     JsonNode me() throws Exception { var r=call("GET","/api/auth/me",null,false);assertEquals(200,r.statusCode(),r.body());return json.readTree(r.body()); }
   }
   @BeforeEach void seed() {
@@ -148,7 +148,7 @@ class AuthenticationTests {
     assertEquals(400,e.call("PUT","/api/vendas/"+UUID.randomUUID(),Map.of(),true).statusCode());
     assertEquals(400,m.call("POST","/api/ajustes-estoque",Map.of(),true).statusCode());
     assertEquals(403,e.call("POST","/api/ajustes-estoque",Map.of(),true).statusCode());
-    assertEquals(404,e.call("GET","/api/estoques/saldo?idProduto="+UUID.randomUUID()+"&idLoja="+other,null,false).statusCode());
+    assertEquals(404,e.call("GET","/api/estoques/saldo?idProdutoSku="+UUID.randomUUID()+"&idLoja="+other,null,false).statusCode());
   }
 
   @Test void assignedStoreIsolationCoversCollectionsDetailsWritesAndConfirmation() throws Exception {
@@ -156,10 +156,10 @@ class AuthenticationTests {
     UUID cat=UUID.randomUUID(),unit=UUID.randomUUID(),product=UUID.randomUUID(),customer=UUID.randomUUID();
     UUID stock=UUID.randomUUID(),movement=UUID.randomUUID(),sale=UUID.randomUUID(),receipt=UUID.randomUUID();
     sql.update("insert into categoria values (?,'C')",cat);sql.update("insert into unidade_medida(id,nome,sigla) values (?,'U','UN')",unit);
-    sql.update("insert into produto(id,nome,id_categoria,id_unidade_medida,tipo_venda,status,criado_em) values (?,'P',?,?,'UNIDADE','ATIVO',now())",product,cat,unit);
+    SkuFixtures.create(sql,product,cat,unit,"P");
     sql.update("insert into cliente(id,nome,criado_em) values (?,'Customer',now())",customer);
-    sql.update("insert into estoque_produto(id,id_produto,id_loja,quantidade_atual,atualizado_em) values (?,?,?,10,now())",stock,product,other);
-    sql.update("insert into movimentacao_estoque(id,id_produto,id_loja,tipo,quantidade,data_movimentacao,id_usuario) values (?,?,?,'ENTRADA_COMPRA',10,now(),?)",movement,product,other,admin);
+    sql.update("insert into estoque_produto(id,id_produto_sku,id_loja,quantidade_atual,atualizado_em) values (?,?,?,10,now())",stock,product,other);
+    sql.update("insert into movimentacao_estoque(id,id_produto_sku,id_loja,tipo,quantidade,data_movimentacao,id_usuario) values (?,?,?,'ENTRADA_COMPRA',10,now(),?)",movement,product,other,admin);
     sql.update("insert into venda(id,data_venda,status,subtotal,desconto_total,valor_total,criado_em,id_cliente,id_usuario,id_loja) values (?,now(),'ABERTA',0,0,0,now(),?,?,?)",sale,customer,admin,other);
     sql.update("insert into recebimento_compra(id,id_compra,id_usuario,status,criado_em,data_recebimento,versao) values (?,?,?,'RASCUNHO',now(),now(),0)",receipt,purchase,admin);
     for(var browser:List.of(m,e)) {
@@ -168,8 +168,8 @@ class AuthenticationTests {
         assertEquals("[]",browser.call("GET","/api/"+resource+"?idLoja="+other,null,false).body());
       }
       assertEquals(404,browser.call("GET","/api/estoques/"+stock,null,false).statusCode());assertEquals(404,browser.call("GET","/api/movimentacoes-estoque/"+movement,null,false).statusCode());assertEquals(404,browser.call("GET","/api/vendas/"+sale,null,false).statusCode());
-      assertEquals(404,browser.call("GET","/api/estoques/saldo?idProduto="+product+"&idLoja="+other,null,false).statusCode());
-      var body=Map.of("idCliente",customer,"idLoja",other,"itens",List.of(Map.of("idProduto",product,"quantidade",1,"precoUnitario",1)));
+      assertEquals(404,browser.call("GET","/api/estoques/saldo?idProdutoSku="+product+"&idLoja="+other,null,false).statusCode());
+      var body=Map.of("idCliente",customer,"idLoja",other,"itens",List.of(Map.of("idProdutoSku",product,"quantidade",1,"precoUnitario",1)));
       assertEquals(404,browser.call("POST","/api/vendas",body,true).statusCode());
       var forged=new HashMap<String,Object>(body);forged.put("idLoja",store);forged.put("idUsuario",admin);
       assertEquals(403,browser.call("POST","/api/vendas",forged,true).statusCode());
@@ -178,7 +178,7 @@ class AuthenticationTests {
     assertEquals(404,m.call("GET","/api/recebimentos-compras/"+receipt,null,false).statusCode());
     assertEquals(404,m.call("POST","/api/recebimentos-compras/"+receipt+"/concluir",Map.of("versao",0),true).statusCode());
     assertEquals(404,m.call("DELETE","/api/recebimentos-compras/"+receipt+"?versao=0",null,true).statusCode());
-    var own=Map.of("idCliente",customer,"idLoja",store,"itens",List.of(Map.of("idProduto",product,"quantidade",1,"precoUnitario",1)));
+    var own=Map.of("idCliente",customer,"idLoja",store,"itens",List.of(Map.of("idProdutoSku",product,"quantidade",1,"precoUnitario",1)));
     var created=e.call("POST","/api/vendas",own,true);assertEquals(201,created.statusCode(),created.body());assertEquals(employee.toString(),json.readTree(created.body()).get("idUsuario").asText());
     var saved=json.readTree(created.body());String saleId=saved.get("id").asText();
     assertEquals(404,e.call("POST","/api/vendas/"+sale+"/concluir",Map.of("versao",0),true).statusCode());
@@ -221,5 +221,14 @@ class AuthenticationTests {
       assertNotEquals(futures.get(0).get(),futures.get(1).get());
     }
     assertEquals(1,sql.queryForObject("select count(*) from usuario where cargo='ADMIN' and status='ATIVO' and revisado",Integer.class));
+  }
+
+  @Test void recoveryIsPublicWithCsrfEvenForForcedOrRevokedSession() throws Exception {
+    var browser=new Browser();assertEquals(200,browser.login("admin@example.test",initial).statusCode());
+    assertEquals(200,browser.call("POST","/api/auth/esqueci-senha",Map.of("login","unknown"),true).statusCode());
+    users.reset(admin,"NewTemporary8291");browser.csrf=null;
+    assertEquals(200,browser.call("POST","/api/auth/esqueci-senha",Map.of("login","unknown"),true).statusCode());
+    assertEquals(401,browser.call("GET","/api/auth/me",null,false).statusCode());
+    assertEquals(401,new Browser().call("POST","/api/auth/esqueci-senha",Map.of("login","unknown"),false).statusCode());
   }
 }

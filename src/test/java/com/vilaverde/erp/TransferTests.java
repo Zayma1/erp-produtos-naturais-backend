@@ -45,10 +45,10 @@ class TransferTests {
     loja=UUID.randomUUID(); usuario=UUID.randomUUID(); produto=UUID.randomUUID();
     UUID categoria=UUID.randomUUID(), unidade=UUID.randomUUID(), fornecedor=UUID.randomUUID();
     sql.update("insert into loja(id,cnpj,nome_fantasia,razao_social,bairro,cidade,estado,numero,status,criado_em) values (?,'12345678901234','Loja','Loja','B','C','SC','1','ATIVA',now())",loja);
-    sql.update("insert into usuario(id,nome,email,cargo,senha_hash,status,criado_em) values (?,'Operador','op@example.test','ADMIN','test-only','ATIVO',now())",usuario);
+    sql.update("insert into usuario(id,nome,email,usuario,cargo,senha_hash,status,criado_em) values (?,'Operador','op@example.test','operador','ADMIN','test-only','ATIVO',now())",usuario);
     sql.update("insert into categoria values (?,'Categoria')",categoria);
     sql.update("insert into unidade_medida(id,nome,sigla) values (?,'Unidade','UN')",unidade);
-    sql.update("insert into produto(id,nome,id_categoria,id_unidade_medida,tipo_venda,status,criado_em) values (?,'Produto',?,?,'UNIDADE','ATIVO',now())",produto,categoria,unidade);
+    SkuFixtures.create(sql,produto,categoria,unidade,"Produto");
     sql.update("insert into fornecedor(id,nome_fantasia,razao_social,estado,cidade,bairro,status) values (?,'Fornecedor','F','SC','C','B','ATIVO')",fornecedor);
     sql.update("update usuario set revisado=true,alterar_senha=false where id=?",usuario);
     var principal=com.vilaverde.erp.security.AuthPrincipal.of(users.findById(usuario).orElseThrow(),false);
@@ -66,7 +66,7 @@ class TransferTests {
   }
   UUID purchaseItem(UUID compra,UUID produto,String q) {
     UUID id=UUID.randomUUID();
-    sql.update("insert into item_compra(id,id_compra,id_produto,quantidade,quantidade_recebida,custo_unitario,desconto,total_item) values (?,?,?,?,0,10,0,100)",id,compra,produto,new BigDecimal(q)); return id;
+    sql.update("insert into item_compra(id,id_compra,id_produto_sku,quantidade,quantidade_recebida,custo_unitario,desconto,total_item) values (?,?,?,?,0,10,0,100)",id,compra,produto,new BigDecimal(q)); return id;
   }
 
  @Autowired TransferenciaEstoqueService transfers;
@@ -76,8 +76,8 @@ class TransferTests {
  ItemTransferenciaRequestDTO row(UUID id,UUID p,String q) {return new ItemTransferenciaRequestDTO(id,p,new BigDecimal(q));}
  TransferenciaRequestDTO request(UUID a,UUID b,Integer v,List<ItemTransferenciaRequestDTO> rows) {return new TransferenciaRequestDTO(a,b,null,null,null,"Obs",v,rows);}
  TransferenciaResponseDTO draft(UUID a,UUID b,String q) {return transfers.criar(UUID.randomUUID(),request(a,b,null,List.of(row(null,produto,q))));}
- void stock(UUID p,UUID l,String q) {sql.update("insert into estoque_produto(id,id_produto,id_loja,quantidade_atual,atualizado_em) values (?,?,?,?,now()) on conflict(id_produto,id_loja) do update set quantidade_atual=excluded.quantidade_atual",UUID.randomUUID(),p,l,new BigDecimal(q));}
- void balance(UUID p,UUID l,String n) {assertEquals(0,new BigDecimal(n).compareTo(sql.queryForObject("select coalesce(sum(quantidade_atual),0) from estoque_produto where id_produto=? and id_loja=?",BigDecimal.class,p,l)));}
+ void stock(UUID p,UUID l,String q) {sql.update("insert into estoque_produto(id,id_produto_sku,id_loja,quantidade_atual,atualizado_em) values (?,?,?,?,now()) on conflict(id_produto_sku,id_loja) do update set quantidade_atual=excluded.quantidade_atual",UUID.randomUUID(),p,l,new BigDecimal(q));}
+ void balance(UUID p,UUID l,String n) {assertEquals(0,new BigDecimal(n).compareTo(sql.queryForObject("select coalesce(sum(quantidade_atual),0) from estoque_produto where id_produto_sku=? and id_loja=?",BigDecimal.class,p,l)));}
  long movements() {return sql.queryForObject("select count(*) from movimentacao_estoque",Long.class);}
  @Test void lifecycleIdentityAuditSnapshotsVersionsAndReplay() {
    stock(produto,loja,"10");var a=draft(loja,destino,"2");assertEquals(usuario,a.idUsuario());assertEquals("UN",a.itens().getFirst().unidadeSiglaSnapshot());
@@ -105,7 +105,7 @@ class TransferTests {
    assertThrows(InvalidInputException.class,()->transfers.cancelar(a.id(),a.versao()," "));
  }
  @Test void shortagesAndOverflowRollbackEveryBalanceIncludingInsertedZeroRows() {
-   UUID second=UUID.randomUUID();sql.update("insert into produto(id,nome,id_categoria,id_unidade_medida,tipo_venda,status,criado_em) select ?,'Second',id_categoria,id_unidade_medida,tipo_venda,status,now() from produto where id=?",second,produto);
+   UUID second=UUID.randomUUID();SkuFixtures.cloneSku(sql,second,produto,"Second");
    stock(produto,loja,"10");var a=transfers.criar(UUID.randomUUID(),request(loja,destino,null,List.of(row(null,produto,"1"),row(null,second,"1"))));
    assertThrows(ConflictException.class,()->transfers.concluir(a.id(),a.versao()));balance(produto,loja,"10");assertEquals(1,sql.queryForObject("select count(*) from estoque_produto",Long.class));assertEquals(0,movements());assertEquals(a.versao(),transfers.buscar(a.id()).versao());
    stock(second,loja,"10");stock(second,destino,"99999999999.999");
@@ -128,7 +128,7 @@ class TransferTests {
    var c=draft(loja,destino,"7");var results=parallel(()->transfers.concluir(c.id(),0),()->sales.concluir(sale.id(),0));assertEquals(1,results.stream().filter(ConflictException.class::isInstance).count());balance(produto,loja,"3");
  }
  void principal(String cargo,Set<UUID> stores) {
-   var p=new com.vilaverde.erp.security.AuthPrincipal(usuario,"op@example.test","Op",com.vilaverde.erp.entity.enums.CargoUsuario.valueOf(cargo),stores,0,false,true,null);
+   var p=new com.vilaverde.erp.security.AuthPrincipal(usuario,"op@example.test","operador","Op",com.vilaverde.erp.entity.enums.CargoUsuario.valueOf(cargo),stores,0,false,true,null);
    org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(p,null,p.getAuthorities()));
  }
  @Test void bothOldAndNewStoresAndReplayRequireScopeAndLegacyIsReadOnly() {
@@ -141,7 +141,7 @@ class TransferTests {
  }
  @Test void csrfAndApiContract() throws Exception {
    var deleteId=draft(loja,destino,"1").id();
-   var d="{\"idLojaOrigem\":\""+loja+"\",\"idLojaDestino\":\""+destino+"\",\"itens\":[{\"idProduto\":\""+produto+"\",\"quantidade\":1}]}";
+   var d="{\"idLojaOrigem\":\""+loja+"\",\"idLojaDestino\":\""+destino+"\",\"itens\":[{\"idProdutoSku\":\""+produto+"\",\"quantidade\":1}]}";
    mvc.perform(post("/api/transferencias-estoque").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf().useInvalidToken()).header("Idempotency-Key",UUID.randomUUID()).contentType("application/json").content(d)).andExpect(status().isForbidden());
    mvc.perform(post("/api/transferencias-estoque").header("Idempotency-Key",UUID.randomUUID()).contentType("application/json").content(d)).andExpect(status().isCreated()).andExpect(jsonPath("$.itens[0].id").exists()).andExpect(jsonPath("$.versao").value(0));
    mvc.perform(delete("/api/transferencias-estoque/"+deleteId)).andExpect(status().isForbidden());
@@ -158,14 +158,14 @@ class TransferTests {
 
  @Test void modificationConfirmationAndCreationReplayHaveIndependentActors() {
    stock(produto,loja,"5");UUID key=UUID.randomUUID();var d=request(loja,destino,null,List.of(row(null,produto,"1")));var a=transfers.criar(key,d);
-   UUID modifier=UUID.randomUUID();sql.update("insert into usuario(id,nome,email,cargo,senha_hash,status,criado_em,revisado,alterar_senha) values (?,'Modifier','modifier@example.test','ADMIN','test','ATIVO',now(),true,false)",modifier);
+   UUID modifier=UUID.randomUUID();sql.update("insert into usuario(id,nome,email,usuario,cargo,senha_hash,status,criado_em,revisado,alterar_senha) values (?,'Modifier','modifier@example.test','modifier','ADMIN','test','ATIVO',now(),true,false)",modifier);
    var p=com.vilaverde.erp.security.AuthPrincipal.of(users.findById(modifier).orElseThrow(),false);org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(p,null,p.getAuthorities()));
    assertThrows(ResourceNotFoundException.class,()->transfers.criar(key,d));
    var b=transfers.atualizar(a.id(),request(loja,destino,0,List.of(row(a.itens().getFirst().id(),produto,"2"))));assertEquals(usuario,b.idUsuario());assertEquals(modifier,b.idModificador());
    var done=transfers.concluir(b.id(),b.versao());assertEquals(usuario,done.idUsuario());assertEquals(modifier,done.idConfirmador());assertEquals(2,sql.queryForObject("select count(*) from movimentacao_estoque where id_usuario=?",Long.class,modifier));
  }
  @Test void childOmissionAndMovementFailureRollbackTheWholeDocument() {
-   stock(produto,loja,"5");UUID second=UUID.randomUUID();sql.update("insert into produto(id,nome,id_categoria,id_unidade_medida,tipo_venda,status,criado_em) select ?,'Second',id_categoria,id_unidade_medida,tipo_venda,status,now() from produto where id=?",second,produto);
+   stock(produto,loja,"5");UUID second=UUID.randomUUID();SkuFixtures.cloneSku(sql,second,produto,"Second");
    var a=transfers.criar(UUID.randomUUID(),request(loja,destino,null,List.of(row(null,produto,"1"),row(null,second,"1"))));
    var b=transfers.atualizar(a.id(),request(loja,destino,0,List.of(row(a.itens().getFirst().id(),produto,"2"))));assertEquals(1,b.itens().size());assertEquals(1,sql.queryForObject("select count(*) from item_transferencia",Long.class));
    sql.execute("create function fail_transfer_movement() returns trigger language plpgsql as $$ begin raise exception 'forced transfer rollback'; end $$");sql.execute("create trigger fail_transfer_movement before insert on movimentacao_estoque for each row execute function fail_transfer_movement()");

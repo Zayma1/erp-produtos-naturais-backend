@@ -12,7 +12,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ItemAjusteEstoque {
+public class ItemAjusteEstoque extends SkuSnapshot {
 
   @Column(name="unidade_sigla_snapshot") private String unidadeSiglaSnapshot;
   @Column(name="saldo_antes",precision=14, scale=3) private BigDecimal saldoAntes;
@@ -27,8 +27,8 @@ public class ItemAjusteEstoque {
   private AjusteEstoque ajusteEstoque;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "id_produto", nullable = false)
-  private Produto produto;
+  @JoinColumn(name = "id_produto_sku", nullable = false)
+  private ProdutoSku produtoSku;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 30)
@@ -38,4 +38,10 @@ public class ItemAjusteEstoque {
   private BigDecimal quantidade;
 
   private String observacao;
+
+  public void setProdutoSku(ProdutoSku sku) {
+    if (produtoSku == null || !produtoSku.getId().equals(sku.getId())) capture(sku);
+    produtoSku = sku;
+  }
+  public void setQuantidade(java.math.BigDecimal q) {produtoSku.validateQuantity(q);quantidade=q;}
 }

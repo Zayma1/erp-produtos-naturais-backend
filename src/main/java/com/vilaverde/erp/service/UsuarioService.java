@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 @Service @RequiredArgsConstructor
 public class UsuarioService {
+  @org.springframework.beans.factory.annotation.Value("${BOOTSTRAP_ADMIN_EMAIL:admin@vilaverde.local}")
+  private String bootstrapEmail;
   private final UsuarioRepository users;
   private final LojaRepository stores;
   private final PasswordEncoder encoder;
@@ -27,6 +29,7 @@ public class UsuarioService {
   }
   private void revoke(Usuario u) {
     u.setAuthVersion(u.getAuthVersion()+1);
+    if(u.getId()!=null)jdbc.update("delete from password_reset where usuario_id=?",u.getId());
     jdbc.update("delete from spring_session where principal_name=?",u.getEmail());
   }
   private boolean activeAdmin(Usuario u) { return u.getCargo()==CargoUsuario.ADMIN && u.getStatus()==StatusCadastro.ATIVO && u.isRevisado(); }
@@ -38,6 +41,10 @@ public class UsuarioService {
     String email=AuthorizationService.normalize(d.email());
     if(users.existsByEmailAndIdNot(email,u.getId()==null ? new UUID(0,0) : u.getId())) throw new ConflictException("E-mail já cadastrado");
     if(stores.findAllById(d.lojas()).size()!=d.lojas().size()) throw new InvalidInputException("Loja inválida");
+    String username=AuthorizationService.normalize(d.usuario());
+    if(!username.matches("[a-z0-9._-]{3,32}"))throw new InvalidInputException("Usuário deve ter 3–32 letras ASCII, números, ponto, hífen ou sublinhado");
+    if(users.existsByUsuarioIgnoreCaseAndIdNot(username,u.getId()==null ? new UUID(0,0) : u.getId()))throw new ConflictException("Usuário já cadastrado");
+    u.setUsuario(username);
     u.setNome(d.nome());u.setEmail(email);u.setCargo(d.cargo());u.setStatus(d.status());u.setLojas(new HashSet<>(d.lojas()));
   }
   @Transactional public UsuarioResponseDTO criar(UsuarioRequestDTO d) {
@@ -60,6 +67,9 @@ public class UsuarioService {
     if(encoder.matches(next,u.getSenhaHash()))throw new InvalidInputException("Escolha uma senha diferente da atual");
     revoke(u);password(u,next,false);users.save(u);
   }
+  @Transactional public void recoverPassword(UUID id,String next) {
+    lock();var u=find(id);revoke(u);password(u,next,false);users.save(u);
+  }
   @Transactional public void bootstrap(String nome,String email,String senha) {
     lock();if(users.findAll().stream().anyMatch(this::activeAdmin))throw new ConflictException("Já existe administrador ativo");
     createBootstrap(nome,email,senha,false);
@@ -67,12 +77,12 @@ public class UsuarioService {
   @Transactional public boolean bootstrapDefaultAdmin(String senha) {
     lock();
     if(users.findAll().stream().anyMatch(this::activeAdmin))return false;
-    createBootstrap("Administrador",AuthorizationService.DEFAULT_ADMIN_EMAIL,senha,true);
+    createBootstrap("Administrador",bootstrapEmail,senha,true);
     return true;
   }
   private void createBootstrap(String nome,String email,String senha,boolean automatic) {
     var u=users.findByEmail(AuthorizationService.normalize(email)).orElseGet(Usuario::new);
-    revoke(u);u.setNome(nome);u.setEmail(AuthorizationService.normalize(email));u.setCargo(CargoUsuario.ADMIN);u.setStatus(StatusCadastro.ATIVO);u.setRevisado(true);
+    revoke(u);u.setUsuario(automatic ? "admin" : AuthorizationService.suggest(email));u.setNome(nome);u.setEmail(AuthorizationService.normalize(email));u.setCargo(CargoUsuario.ADMIN);u.setStatus(StatusCadastro.ATIVO);u.setRevisado(true);
     // The requested initial admin/admin credential is the only short-password exception.
     // Business access remains blocked until it is replaced through the normal password policy.
     if(automatic && "admin".equals(senha)) {u.setSenhaHash(encoder.encode(senha));u.setAlterarSenha(true);}

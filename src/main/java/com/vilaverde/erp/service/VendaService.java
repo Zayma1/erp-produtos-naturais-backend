@@ -5,7 +5,7 @@ import com.vilaverde.erp.dto.venda.VendaRequestDTO;
 import com.vilaverde.erp.dto.venda.VendaResponseDTO;
 import com.vilaverde.erp.entity.Cliente;
 import com.vilaverde.erp.entity.Loja;
-import com.vilaverde.erp.entity.Produto;
+import com.vilaverde.erp.entity.ProdutoSku;
 import com.vilaverde.erp.entity.ProdutoVenda;
 import com.vilaverde.erp.entity.Usuario;
 import com.vilaverde.erp.entity.Venda;
@@ -13,7 +13,7 @@ import com.vilaverde.erp.entity.enums.StatusVenda;
 import com.vilaverde.erp.exception.ResourceNotFoundException;
 import com.vilaverde.erp.repository.ClienteRepository;
 import com.vilaverde.erp.repository.LojaRepository;
-import com.vilaverde.erp.repository.ProdutoRepository;
+import com.vilaverde.erp.repository.ProdutoSkuRepository;
 import com.vilaverde.erp.repository.UsuarioRepository;
 import com.vilaverde.erp.repository.VendaRepository;
 import java.math.BigDecimal;
@@ -39,7 +39,7 @@ public class VendaService {
   private final ClienteRepository clienteRepository;
   private final UsuarioRepository usuarioRepository;
   private final LojaRepository lojaRepository;
-  private final ProdutoRepository produtoRepository;
+  private final ProdutoSkuRepository produtoRepository;
 
   @Transactional(readOnly = true)
   public List<VendaResponseDTO> listar(
@@ -95,26 +95,27 @@ public class VendaService {
     open(venda,versao);
     if(venda.getCliente()==null || venda.getItens().isEmpty()) throw new ConflictException("Revise cliente e itens antes de concluir");
     Map<UUID,BigDecimal> required=new TreeMap<>(Comparator.comparing(UUID::toString));
-    venda.getItens().forEach(i -> required.merge(i.getProduto().getId(),i.getQuantidade(),BigDecimal::add));
+    venda.getItens().forEach(i -> required.merge(i.getProdutoSku().getId(),i.getQuantidade(),BigDecimal::add));
     List<String> shortages=new ArrayList<>();
     for(var entry:required.entrySet()) {
-      var balances=jdbc.queryForList("select quantidade_atual from estoque_produto where id_produto=? and id_loja=? for update",BigDecimal.class,entry.getKey(),venda.getLoja().getId());
+      var balances=jdbc.queryForList("select quantidade_atual from estoque_produto where id_produto_sku=? and id_loja=? for update",BigDecimal.class,entry.getKey(),venda.getLoja().getId());
       BigDecimal available=balances.isEmpty() ? BigDecimal.ZERO : balances.getFirst();
       if(available.compareTo(entry.getValue())<0) {
-        String name=venda.getItens().stream().filter(i->i.getProduto().getId().equals(entry.getKey())).findFirst().orElseThrow().getProduto().getNome();
+        String name=venda.getItens().stream().filter(i->i.getProdutoSku().getId().equals(entry.getKey())).findFirst().orElseThrow().getProdutoSku().getDisplayName();
         shortages.add(name+" ("+entry.getKey()+"): disponível "+available+", necessário "+entry.getValue());
       }
     }
     if(!shortages.isEmpty()) throw new ConflictException("Estoque insuficiente: "+String.join("; ",shortages));
     var now=java.time.OffsetDateTime.now().withOffsetSameInstant(java.time.ZoneOffset.UTC).truncatedTo(java.time.temporal.ChronoUnit.MICROS);
     for(var entry:required.entrySet()) {
-      int count=jdbc.update("update estoque_produto set quantidade_atual=quantidade_atual-?,atualizado_em=? where id_produto=? and id_loja=? and quantidade_atual>=?",entry.getValue(),now,entry.getKey(),venda.getLoja().getId(),entry.getValue());
+      int count=jdbc.update("update estoque_produto set quantidade_atual=quantidade_atual-?,atualizado_em=? where id_produto_sku=? and id_loja=? and quantidade_atual>=?",entry.getValue(),now,entry.getKey(),venda.getLoja().getId(),entry.getValue());
       if(count!=1) throw new ConflictException("Saldo alterado; revise o estoque");
     }
     for(var item:venda.getItens()) {
       MovimentacaoEstoque m=new MovimentacaoEstoque();
-      m.setVenda(venda); m.setItemVenda(item); m.setLoja(venda.getLoja()); m.setProduto(item.getProduto());
-      m.setTipo(TipoMovimentacao.SAIDA_VENDA); m.setQuantidade(item.getQuantidade());
+      m.setVenda(venda); m.setItemVenda(item); m.setLoja(venda.getLoja()); m.setProdutoSku(item.getProdutoSku()); m.snapshotFrom(item);
+      m.setTipo(TipoMovimentacao.SAIDA_VENDA); m.getProdutoSku().requireActive();
+      m.setQuantidade(item.getQuantidade());
       m.setUsuario(scope.actor()); m.setDataMovimentacao(now); movimentos.save(m);
     }
     venda.setConfirmador(scope.actor()); venda.setModificador(scope.actor());
@@ -153,7 +154,7 @@ public class VendaService {
     if(dto.observacao()!=null && dto.observacao().length()>255) throw new InvalidInputException("Observação deve ter até 255 caracteres");
     for(var i:dto.itens()) {
       if(i==null) throw new InvalidInputException("Item obrigatório");
-      if(i.idProduto()==null) throw new InvalidInputException("Produto obrigatório");
+      if(i.idProdutoSku()==null) throw new InvalidInputException("ProdutoSku obrigatório");
       number(i.quantidade(),14,3,true); number(i.precoUnitario(),12,2,false);
       BigDecimal discount=i.desconto()==null ? BigDecimal.ZERO : i.desconto(); number(discount,14,2,false);
       if(discount.compareTo(i.quantidade().multiply(i.precoUnitario()))>0) throw new InvalidInputException("Desconto supera o valor bruto");
@@ -165,7 +166,7 @@ public class VendaService {
     append(s,d.idCliente()); append(s,d.idUsuario()); append(s,d.idLoja()); append(s,d.versao()); append(s,d.status());
     append(s,d.dataVenda()==null ? null : d.dataVenda().toInstant()); append(s,d.observacao());
     // Row order is meaningful and duplicate products remain distinct sale items.
-    for(var i:d.itens()) { append(s,i.id()); append(s,i.idProduto()); append(s,i.quantidade().stripTrailingZeros().toPlainString()); append(s,i.precoUnitario().stripTrailingZeros().toPlainString()); append(s,(i.desconto()==null ? BigDecimal.ZERO : i.desconto()).stripTrailingZeros().toPlainString()); }
+    for(var i:d.itens()) { append(s,i.id()); append(s,i.idProdutoSku()); append(s,i.quantidade().stripTrailingZeros().toPlainString()); append(s,i.precoUnitario().stripTrailingZeros().toPlainString()); append(s,(i.desconto()==null ? BigDecimal.ZERO : i.desconto()).stripTrailingZeros().toPlainString()); }
     try { return HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(s.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8))); }
     catch(java.security.NoSuchAlgorithmException e) {throw new IllegalStateException(e);}
   }
@@ -195,9 +196,10 @@ public class VendaService {
     for (ProdutoVendaRequestDTO itemDto : itens) {
       ProdutoVenda item=itemDto.id()==null ? new ProdutoVenda() : old.get(itemDto.id());
       if(item==null || (itemDto.id()!=null && !retained.add(itemDto.id()))) throw new InvalidInputException("ID de item não pertence à venda ou está duplicado");
-      boolean sameProduct=item.getProduto()!=null && item.getProduto().getId().equals(itemDto.idProduto());
+      boolean sameProduct=item.getProdutoSku()!=null && item.getProdutoSku().getId().equals(itemDto.idProdutoSku());
       item.setVenda(venda);
-      item.setProduto(buscarProduto(itemDto.idProduto()));
+      item.setProdutoSku(buscarProduto(itemDto.idProdutoSku()));
+      item.getProdutoSku().requireActive();
       item.setQuantidade(itemDto.quantidade());
       item.setPrecoUnitario(itemDto.precoUnitario());
       item.setDesconto(
@@ -210,7 +212,7 @@ public class VendaService {
           .subtract(item.getDesconto())
           .setScale(2, RoundingMode.HALF_UP)
       );
-      if(!sameProduct) item.setUnidadeSiglaSnapshot(item.getProduto().getUnidadeMedida().getSigla());
+      if(!sameProduct) item.setUnidadeSiglaSnapshot(item.getProdutoSku().getUnidadeMedida().getSigla());
       if(itemDto.id()==null) additions.add(item);
     }
     venda.getItens().removeIf(i->!retained.contains(i.getId()));
@@ -269,11 +271,11 @@ public class VendaService {
       .orElseThrow(() -> new ResourceNotFoundException("Loja não encontrada"));
   }
 
-  private Produto buscarProduto(UUID id) {
+  private ProdutoSku buscarProduto(UUID id) {
     return produtoRepository
       .findById(id)
       .orElseThrow(() ->
-        new ResourceNotFoundException("Produto não encontrado")
+        new ResourceNotFoundException("SKU não encontrado")
       );
   }
 }

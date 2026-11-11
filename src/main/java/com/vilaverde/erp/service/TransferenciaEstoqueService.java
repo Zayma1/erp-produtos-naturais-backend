@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class TransferenciaEstoqueService {
  private final TransferenciaEstoqueRepository repository;
  private final LojaRepository lojas;
- private final ProdutoRepository produtos;
+ private final ProdutoSkuRepository produtos;
  private final MovimentacaoEstoqueRepository movimentos;
  private final AccessScope scope;
  private final JdbcTemplate jdbc;
@@ -76,28 +76,28 @@ public class TransferenciaEstoqueService {
    if(t.getStatus()==StatusDocumento.CONCLUIDA)return TransferenciaResponseDTO.fromEntity(t);
    open(t,version);
    if(t.getItens().isEmpty()) throw new ConflictException("Transferência sem itens");
-   var items=t.getItens().stream().sorted(Comparator.comparing(i->i.getProduto().getId().toString())).toList();
+   var items=t.getItens().stream().sorted(Comparator.comparing(i->i.getProdutoSku().getId().toString())).toList();
    var stores=List.of(t.getLojaOrigem().getId(),t.getLojaDestino().getId()).stream().sorted(Comparator.comparing(UUID::toString)).toList();
    Map<String,BigDecimal> balances=new HashMap<>();
    // Inserts and locks use the same product -> store order as stock writers. Inserts roll back on any failure.
    for(var i:items) for(var store:stores) {
-     jdbc.update("insert into estoque_produto(id,id_produto,id_loja,quantidade_atual,atualizado_em) values (?,?,?,0,now()) on conflict(id_produto,id_loja) do nothing",UUID.randomUUID(),i.getProduto().getId(),store);
-     balances.put(i.getProduto().getId()+":"+store,jdbc.queryForObject("select quantidade_atual from estoque_produto where id_produto=? and id_loja=? for update",BigDecimal.class,i.getProduto().getId(),store));
+     jdbc.update("insert into estoque_produto(id,id_produto_sku,id_loja,quantidade_atual,atualizado_em) values (?,?,?,0,now()) on conflict(id_produto_sku,id_loja) do nothing",UUID.randomUUID(),i.getProdutoSku().getId(),store);
+     balances.put(i.getProdutoSku().getId()+":"+store,jdbc.queryForObject("select quantidade_atual from estoque_produto where id_produto_sku=? and id_loja=? for update",BigDecimal.class,i.getProdutoSku().getId(),store));
    }
    var problems=new ArrayList<String>();
    for(var i:items) {
-     var available=balances.get(i.getProduto().getId()+":"+t.getLojaOrigem().getId());
-     var destination=balances.get(i.getProduto().getId()+":"+t.getLojaDestino().getId());
-     if(available.compareTo(i.getQuantidade())<0)problems.add(i.getProduto().getNome()+": disponível "+available+", necessário "+i.getQuantidade());
-     if(destination.add(i.getQuantidade()).compareTo(new BigDecimal("100000000000"))>=0)problems.add(i.getProduto().getNome()+": limite numérico do destino excedido");
+     var available=balances.get(i.getProdutoSku().getId()+":"+t.getLojaOrigem().getId());
+     var destination=balances.get(i.getProdutoSku().getId()+":"+t.getLojaDestino().getId());
+     if(available.compareTo(i.getQuantidade())<0)problems.add(i.getProdutoSku().getDisplayName()+": disponível "+available+", necessário "+i.getQuantidade());
+     if(destination.add(i.getQuantidade()).compareTo(new BigDecimal("100000000000"))>=0)problems.add(i.getProdutoSku().getDisplayName()+": limite numérico do destino excedido");
    }
    if(!problems.isEmpty())throw new ConflictException("Transferência bloqueada: "+String.join("; ",problems));
    var now=now();var actor=scope.actor();
    for(var i:items) {
-     jdbc.update("update estoque_produto set quantidade_atual=quantidade_atual-?,atualizado_em=? where id_produto=? and id_loja=?",i.getQuantidade(),now,i.getProduto().getId(),t.getLojaOrigem().getId());
-     jdbc.update("update estoque_produto set quantidade_atual=quantidade_atual+?,atualizado_em=? where id_produto=? and id_loja=?",i.getQuantidade(),now,i.getProduto().getId(),t.getLojaDestino().getId());
+     jdbc.update("update estoque_produto set quantidade_atual=quantidade_atual-?,atualizado_em=? where id_produto_sku=? and id_loja=?",i.getQuantidade(),now,i.getProdutoSku().getId(),t.getLojaOrigem().getId());
+     jdbc.update("update estoque_produto set quantidade_atual=quantidade_atual+?,atualizado_em=? where id_produto_sku=? and id_loja=?",i.getQuantidade(),now,i.getProdutoSku().getId(),t.getLojaDestino().getId());
      for(boolean entrada:List.of(false,true)) {
-       var m=new MovimentacaoEstoque();m.setTransferencia(t);m.setItemTransferencia(i);m.setProduto(i.getProduto());
+       var m=new MovimentacaoEstoque();m.setTransferencia(t);m.setItemTransferencia(i);m.setProdutoSku(i.getProdutoSku()); m.snapshotFrom(i);
        m.setLoja(entrada ? t.getLojaDestino():t.getLojaOrigem());m.setTipo(entrada ? TipoMovimentacao.TRANSFERENCIA_ENTRADA:TipoMovimentacao.TRANSFERENCIA_SAIDA);
        m.setQuantidade(i.getQuantidade());m.setUsuario(actor);m.setDataMovimentacao(now);movimentos.save(m);
      }
@@ -120,7 +120,7 @@ public class TransferenciaEstoqueService {
    if(d.itens()==null || d.itens().isEmpty())throw new InvalidInputException("Informe itens");
    var products=new HashSet<UUID>();
    for(var i:d.itens()) {
-     if(i==null || i.idProduto()==null || !products.add(i.idProduto()))throw new InvalidInputException("Produtos obrigatórios e únicos");
+     if(i==null || i.idProdutoSku()==null || !products.add(i.idProdutoSku()))throw new InvalidInputException("Produtos obrigatórios e únicos");
      var q=i.quantidade();if(q==null || q.signum()<=0 || q.scale()>3 || q.compareTo(new BigDecimal("100000000000"))>=0)throw new InvalidInputException("Quantidade positiva numeric(14,3) obrigatória");
    }
  }
@@ -133,9 +133,9 @@ public class TransferenciaEstoqueService {
    for(var r:d.itens()) {
      var i=r.id()==null ? new ItemTransferencia():old.get(r.id());
      if(i==null || (r.id()!=null && !retained.add(r.id())))throw new InvalidInputException("ID de item estrangeiro ou duplicado");
-     boolean same=i.getProduto()!=null && i.getProduto().getId().equals(r.idProduto());
-     i.setTransferencia(t);i.setProduto(produtos.findById(r.idProduto()).orElseThrow(()->new ResourceNotFoundException("Produto não encontrado")));i.setQuantidade(r.quantidade());
-     if(!same)i.setUnidadeSiglaSnapshot(i.getProduto().getUnidadeMedida().getSigla());
+     boolean same=i.getProdutoSku()!=null && i.getProdutoSku().getId().equals(r.idProdutoSku());
+     i.setTransferencia(t);i.setProdutoSku(produtos.findById(r.idProdutoSku()).orElseThrow(()->new ResourceNotFoundException("SKU não encontrado")));i.setQuantidade(r.quantidade());
+     if(!same)i.setUnidadeSiglaSnapshot(i.getProdutoSku().getUnidadeMedida().getSigla());
      if(r.id()==null)added.add(i);
    }
    t.getItens().removeIf(i->!retained.contains(i.getId()));t.getItens().addAll(added);
@@ -143,7 +143,7 @@ public class TransferenciaEstoqueService {
  private String hash(TransferenciaRequestDTO d) {
    var s=new StringBuilder();
    for(Object v:new Object[]{d.idLojaOrigem(),d.idLojaDestino(),d.idUsuario(),d.versao(),d.status(),d.dataTransferencia()==null?null:d.dataTransferencia().toInstant(),d.observacao()})append(s,v);
-   for(var i:d.itens().stream().sorted(Comparator.comparing(r->r.idProduto().toString())).toList()){append(s,i.id());append(s,i.idProduto());append(s,i.quantidade().stripTrailingZeros().toPlainString());}
+   for(var i:d.itens().stream().sorted(Comparator.comparing(r->r.idProdutoSku().toString())).toList()){append(s,i.id());append(s,i.idProdutoSku());append(s,i.quantidade().stripTrailingZeros().toPlainString());}
    try{return HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(s.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8)));}catch(java.security.NoSuchAlgorithmException e){throw new IllegalStateException(e);}
  }
  private void append(StringBuilder s,Object v) {if(v==null)s.append("-1:");else {String a=v.toString();s.append(a.length()).append(':').append(a);}}

@@ -7,7 +7,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public record ProdutoPrecoLojaRequestDTO(
-  @NotNull UUID idProduto,
+  @NotNull UUID idProdutoSku,
   @NotNull UUID idLoja,
   @NotNull @DecimalMin("0.00") BigDecimal preco,
   OffsetDateTime dataInicio,

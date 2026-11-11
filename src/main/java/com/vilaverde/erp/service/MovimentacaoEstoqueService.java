@@ -17,8 +17,8 @@ public class MovimentacaoEstoqueService {
   private final MovimentacaoEstoqueRepository repository;
 
   @Transactional(readOnly = true)
-  public List<MovimentacaoResponseDTO> listar(UUID idProduto, UUID idLoja) {
-    return scope.rows(repository,"loja.id").stream().filter(e -> (idProduto==null || e.getProduto().getId().equals(idProduto)) && (idLoja==null || e.getLoja().getId().equals(idLoja))).map(MovimentacaoResponseDTO::fromEntity).toList();
+  public List<MovimentacaoResponseDTO> listar(UUID idProduto, UUID idProdutoSku, UUID idLoja) {
+    return scope.rows(repository,"loja.id").stream().filter(e -> (idProduto==null || e.getProdutoSku().getProduto().getId().equals(idProduto)) && (idProdutoSku==null || e.getProdutoSku().getId().equals(idProdutoSku)) && (idLoja==null || e.getLoja().getId().equals(idLoja))).map(MovimentacaoResponseDTO::fromEntity).toList();
   }
 
   @Transactional(readOnly = true)

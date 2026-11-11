@@ -83,7 +83,7 @@ public class DevolucaoFornecedorService {
   Map<UUID,BigDecimal> bySource=new HashMap<>();Map<UUID,BigDecimal> deltas=new TreeMap<>(Comparator.comparing(UUID::toString));
   for(var i:e.getItens()) {
    bySource.merge(i.getItemCompra().getId(),i.getQuantidade(),BigDecimal::add);
-   if(true) deltas.merge(i.getProduto().getId(),i.getQuantidade().negate(),BigDecimal::add);
+   if(true) deltas.merge(i.getProdutoSku().getId(),i.getQuantidade().negate(),BigDecimal::add);
   }
   for(var entry:bySource.entrySet()) {
    var received=jdbc.queryForObject("select quantidade_recebida from item_compra where id=?",BigDecimal.class,entry.getKey());
@@ -93,15 +93,15 @@ public class DevolucaoFornecedorService {
   var store=e.getCompra().getLoja().getId();
   // Identical product/store ordering and row locks to receiving, sales, transfers, adjustments.
   for(var entry:deltas.entrySet()) {
-   jdbc.update("insert into estoque_produto(id,id_produto,id_loja,quantidade_atual,atualizado_em) values (?,?,?,0,now()) on conflict(id_produto,id_loja) do nothing",UUID.randomUUID(),entry.getKey(),store);
-   var balance=jdbc.queryForObject("select quantidade_atual from estoque_produto where id_produto=? and id_loja=? for update",BigDecimal.class,entry.getKey(),store);
+   jdbc.update("insert into estoque_produto(id,id_produto_sku,id_loja,quantidade_atual,atualizado_em) values (?,?,?,0,now()) on conflict(id_produto_sku,id_loja) do nothing",UUID.randomUUID(),entry.getKey(),store);
+   var balance=jdbc.queryForObject("select quantidade_atual from estoque_produto where id_produto_sku=? and id_loja=? for update",BigDecimal.class,entry.getKey(),store);
    var after=balance.add(entry.getValue());if(after.signum()<0 || after.compareTo(LIMIT)>=0)throw new ConflictException("Saldo insuficiente ou overflow para produto "+entry.getKey()+"; disponível: "+balance);
   }
   var now=now();var actor=scope.actor();
-  for(var entry:deltas.entrySet())jdbc.update("update estoque_produto set quantidade_atual=quantidade_atual+?,atualizado_em=? where id_produto=? and id_loja=?",entry.getValue(),now,entry.getKey(),store);
+  for(var entry:deltas.entrySet())jdbc.update("update estoque_produto set quantidade_atual=quantidade_atual+?,atualizado_em=? where id_produto_sku=? and id_loja=?",entry.getValue(),now,entry.getKey(),store);
   for(var i:e.getItens())if(true) {
    var m=new MovimentacaoEstoque();m.setDevolucaoFornecedor(e);m.setItemDevolucaoFornecedor(i);m.setCompra(e.getCompra());
-   m.setProduto(i.getProduto());m.setLoja(e.getCompra().getLoja());m.setTipo(TipoMovimentacao.DEVOLUCAO_FORNECEDOR);m.setQuantidade(i.getQuantidade());m.setObservacao(i.getObservacao());m.setUsuario(actor);m.setDataMovimentacao(now);movimentos.save(m);
+   m.setProdutoSku(i.getProdutoSku()); m.snapshotFrom(i);m.setLoja(e.getCompra().getLoja());m.setTipo(TipoMovimentacao.DEVOLUCAO_FORNECEDOR);m.setQuantidade(i.getQuantidade());m.setObservacao(i.getObservacao());m.setUsuario(actor);m.setDataMovimentacao(now);movimentos.save(m);
   }
   e.setStatus(StatusDocumento.CONCLUIDA);e.setDataDevolucao(now);e.setConcluidoEm(now);e.setAtualizadoEm(now);e.setConfirmador(actor);e.setModificador(actor);
   repository.flush();return DevolucaoFornecedorResponseDTO.fromEntity(e);
@@ -118,7 +118,7 @@ public class DevolucaoFornecedorService {
   if(d.itens()==null || d.itens().isEmpty())throw new InvalidInputException("Informe itens");
   var unique=new HashSet<String>();
   for(var i:d.itens()) {
-   if(i==null || i.idItemCompra()==null || i.idProduto()==null)throw new InvalidInputException("Item e produto de origem obrigatórios");
+   if(i==null || i.idItemCompra()==null || i.idProdutoSku()==null)throw new InvalidInputException("Item e produto de origem obrigatórios");
 
    if(!unique.add(i.idItemCompra().toString()+""))throw new InvalidInputException("Item de origem duplicado");
    if(i.observacao()!=null && i.observacao().length()>255)throw new InvalidInputException("Observação deve ter até 255 caracteres");
@@ -130,12 +130,12 @@ public class DevolucaoFornecedorService {
   Map<UUID,ItemDevolucaoFornecedor> old=new HashMap<>();e.getItens().forEach(i->old.put(i.getId(),i));var retained=new HashSet<UUID>();var added=new ArrayList<ItemDevolucaoFornecedor>();
   for(var r:d.itens()) {
    var original=sourceItems.findById(r.idItemCompra()).orElseThrow(()->new InvalidInputException("Item de origem inválido"));
-   if(!original.getCompra().getId().equals(e.getCompra().getId()) || !original.getProduto().getId().equals(r.idProduto()))throw new InvalidInputException("Item/produto não pertence à origem");
+   if(!original.getCompra().getId().equals(e.getCompra().getId()) || !original.getProdutoSku().getId().equals(r.idProdutoSku()))throw new InvalidInputException("Item/produto não pertence à origem");
    var i=r.id()==null?new ItemDevolucaoFornecedor():old.get(r.id());
    if(i==null || (r.id()!=null && !retained.add(r.id())))throw new InvalidInputException("ID de item estrangeiro ou duplicado");
    boolean same=i.getItemCompra()!=null && i.getItemCompra().getId().equals(original.getId());
-   i.setDevolucaoFornecedor(e);i.setItemCompra(original);i.setProduto(original.getProduto());i.setQuantidade(r.quantidade());i.setObservacao(r.observacao());
-   if(!same) {i.setNomeProdutoSnapshot(original.getProduto().getNome());i.setUnidadeSiglaSnapshot(original.getProduto().getUnidadeMedida().getSigla());i.setUnidadeOrigem("UNIDADE_NA_CRIACAO_DEVOLUCAO");}
+   i.setDevolucaoFornecedor(e);i.setItemCompra(original);i.setProdutoSku(original.getProdutoSku()); i.snapshotFrom(original);i.setQuantidade(r.quantidade());i.setObservacao(r.observacao());
+   if(!same) {i.setNomeProdutoSnapshot(original.getProdutoSku().getProduto().getNome());i.setUnidadeSiglaSnapshot(original.getUnidadeSiglaSnapshot());i.setUnidadeOrigem("COMPRA");}
    if(r.id()==null)added.add(i);
   }
   e.getItens().removeIf(i->!retained.contains(i.getId()));e.getItens().addAll(added);
@@ -144,7 +144,7 @@ public class DevolucaoFornecedorService {
  private String hash(DevolucaoFornecedorRequestDTO d) {
   var text=new StringBuilder();
   for(Object v:new Object[]{d.idCompra(),d.idUsuario(),d.dataDevolucao(),d.status(),d.motivo(),d.observacao(),d.versao()})append(text,v);
-  for(var i:d.itens()){append(text,i.id());append(text,i.idItemCompra());append(text,i.idProduto());append(text,i.quantidade().stripTrailingZeros().toPlainString());append(text,i.observacao());}
+  for(var i:d.itens()){append(text,i.id());append(text,i.idItemCompra());append(text,i.idProdutoSku());append(text,i.quantidade().stripTrailingZeros().toPlainString());append(text,i.observacao());}
   try{return HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(text.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8)));}catch(java.security.NoSuchAlgorithmException ex){throw new IllegalStateException(ex);}
  }
  private void append(StringBuilder text,Object value) {if(value==null)text.append("-1:");else {var s=value.toString();text.append(s.length()).append(':').append(s);}}

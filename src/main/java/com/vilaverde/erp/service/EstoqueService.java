@@ -4,11 +4,11 @@ import com.vilaverde.erp.dto.estoque.EstoqueResponseDTO;
 import com.vilaverde.erp.dto.estoque.SaldoEstoqueResponseDTO;
 import com.vilaverde.erp.entity.EstoqueProduto;
 import com.vilaverde.erp.entity.Loja;
-import com.vilaverde.erp.entity.Produto;
+import com.vilaverde.erp.entity.ProdutoSku;
 import com.vilaverde.erp.exception.ResourceNotFoundException;
 import com.vilaverde.erp.repository.EstoqueProdutoRepository;
 import com.vilaverde.erp.repository.LojaRepository;
-import com.vilaverde.erp.repository.ProdutoRepository;
+import com.vilaverde.erp.repository.ProdutoSkuRepository;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -22,12 +22,12 @@ public class EstoqueService {
   private final com.vilaverde.erp.security.AccessScope scope;
 
   private final EstoqueProdutoRepository estoqueProdutoRepository;
-  private final ProdutoRepository produtoRepository;
+  private final ProdutoSkuRepository produtoRepository;
   private final LojaRepository lojaRepository;
 
   @Transactional(readOnly = true)
-  public List<EstoqueResponseDTO> listar(UUID idProduto, UUID idLoja) {
-    return scope.rows(estoqueProdutoRepository,"loja.id").stream().filter(e -> (idProduto==null || e.getProduto().getId().equals(idProduto)) && (idLoja==null || e.getLoja().getId().equals(idLoja))).map(EstoqueResponseDTO::fromEntity).toList();
+  public List<EstoqueResponseDTO> listar(UUID idProduto, UUID idProdutoSku, UUID idLoja) {
+    return scope.rows(estoqueProdutoRepository,"loja.id").stream().filter(e -> (idProduto==null || e.getProdutoSku().getProduto().getId().equals(idProduto)) && (idProdutoSku==null || e.getProdutoSku().getId().equals(idProdutoSku)) && (idLoja==null || e.getLoja().getId().equals(idLoja))).map(EstoqueResponseDTO::fromEntity).toList();
   }
 
   @Transactional(readOnly = true)
@@ -47,17 +47,17 @@ public class EstoqueService {
     buscarProduto(idProduto);
     buscarLoja(idLoja);
     BigDecimal quantidade = estoqueProdutoRepository
-      .findFirstByProdutoIdAndLojaId(idProduto, idLoja)
+      .findFirstByProdutoSkuIdAndLojaId(idProduto, idLoja)
       .map(EstoqueProduto::getQuantidadeAtual)
       .orElse(BigDecimal.ZERO);
-    return new SaldoEstoqueResponseDTO(idProduto, idLoja, quantidade);
+    return new SaldoEstoqueResponseDTO(buscarProduto(idProduto).getProduto().getId(), idProduto, idLoja, quantidade);
   }
 
-  private Produto buscarProduto(UUID id) {
+  private ProdutoSku buscarProduto(UUID id) {
     return produtoRepository
       .findById(id)
       .orElseThrow(() ->
-        new ResourceNotFoundException("Produto não encontrado")
+        new ResourceNotFoundException("SKU não encontrado")
       );
   }
 
