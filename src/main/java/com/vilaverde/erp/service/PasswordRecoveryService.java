@@ -48,7 +48,7 @@ public class PasswordRecoveryService {
   @Transactional public void reset(String token,String password,String confirmation) {
     if(!Objects.equals(password,confirmation))throw new InvalidInputException("As senhas não coincidem");
     sql.query("select pg_advisory_xact_lock(8120048)",rs -> {});
-    var ids=sql.query("select usuario_id from password_reset where token_hash=? and expires_at>now() for update",(rs,n)->rs.getObject(1,UUID.class),hash(token));
+    var ids=sql.query("select usuario_id from password_reset where token_hash=? and expires_at>clock_timestamp() for update",(rs,n)->rs.getObject(1,UUID.class),hash(token));
     if(ids.isEmpty())throw new InvalidInputException("Link inválido ou expirado. Solicite outro.");
     users.recoverPassword(ids.getFirst(),password);
   }

@@ -222,4 +222,13 @@ class AuthenticationTests {
     }
     assertEquals(1,sql.queryForObject("select count(*) from usuario where cargo='ADMIN' and status='ATIVO' and revisado",Integer.class));
   }
+
+  @Test void recoveryIsPublicWithCsrfEvenForForcedOrRevokedSession() throws Exception {
+    var browser=new Browser();assertEquals(200,browser.login("admin@example.test",initial).statusCode());
+    assertEquals(200,browser.call("POST","/api/auth/esqueci-senha",Map.of("login","unknown"),true).statusCode());
+    users.reset(admin,"NewTemporary8291");browser.csrf=null;
+    assertEquals(200,browser.call("POST","/api/auth/esqueci-senha",Map.of("login","unknown"),true).statusCode());
+    assertEquals(401,browser.call("GET","/api/auth/me",null,false).statusCode());
+    assertEquals(401,new Browser().call("POST","/api/auth/esqueci-senha",Map.of("login","unknown"),false).statusCode());
+  }
 }

@@ -154,4 +154,14 @@ class FormsAuthTests {
       assertThrows(InvalidInputException.class,()->stores.criar(new com.vilaverde.erp.dto.loja.LojaRequestDTO("L","L","SC","C","B","1",4204608,"","bad")));
     } finally {org.springframework.security.core.context.SecurityContextHolder.clearContext();}
   }
+
+  @Test void supplierAndUnitIndexesCoverConcurrentWrites() throws Exception {
+    var request=new com.vilaverde.erp.dto.fornecedor.FornecedorRequestDTO("F","F","SC","C","B",4204608,"","04.252.011/0001-10",null);
+    try(var pool=Executors.newFixedThreadPool(2)) {
+      var gate=new CountDownLatch(1);
+      var jobs=List.of(1,2).stream().map(n->pool.submit(()->{gate.await();try{suppliers.criar(request);return true;}catch(RuntimeException e){return false;}})).toList();gate.countDown();int successes=0;for(var job:jobs)if(job.get())successes++;assertEquals(1,successes);
+      var start=new CountDownLatch(1);
+      var unitsJobs=List.of("  Nova   Unidade ","NOVA UNIDADE").stream().map(name->pool.submit(()->{start.await();try{units.criar(new UnidadeMedidaRequestDTO("UN",name));return true;}catch(RuntimeException e){return false;}})).toList();start.countDown();successes=0;for(var job:unitsJobs)if(job.get())successes++;assertEquals(1,successes);
+    }
+  }
 }
