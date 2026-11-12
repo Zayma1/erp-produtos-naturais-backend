@@ -74,7 +74,12 @@ public class GlobalExceptionHandler {
   }
   @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
   public ResponseEntity<ApiError> unavailable(org.springframework.web.server.ResponseStatusException ex) {
-    return ResponseEntity.status(ex.getStatusCode()).body(new ApiError(ex.getStatusCode().value(),"Serviço indisponível",ex.getReason()));
+    var response=ResponseEntity.status(ex.getStatusCode());
+    var auth=org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+    if(ex instanceof LocalidadesUnavailableException locality && auth!=null && auth.isAuthenticated() &&
+      auth.getAuthorities().stream().anyMatch(a->a.getAuthority().equals("ROLE_ADMIN")))
+      response.header("X-IBGE-Failure",locality.diagnostic());
+    return response.header("Cache-Control","no-store").body(new ApiError(ex.getStatusCode().value(),"Serviço indisponível",ex.getReason()));
   }
 
   @ExceptionHandler(InvalidInputException.class)

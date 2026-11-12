@@ -22,9 +22,11 @@ public class LocalidadesService {
   }
   protected Duration requestBudget() {return Duration.ofSeconds(5);}
   private static final class UpstreamStatusException extends IOException {
+    final int status;
     final boolean transientFailure;
     UpstreamStatusException(int status,boolean retryPermitted) {
       super("IBGE respondeu HTTP "+status);
+      this.status=status;
       this.transientFailure=retryPermitted && (status==429 || status==500 || status==502 || status==503 || status==504);
     }
     boolean transientFailure() {return transientFailure;}
@@ -70,7 +72,7 @@ public class LocalidadesService {
       // This request contains only an official public locality path, never credentials or reset tokens.
       log.warn("Falha na consulta IBGE: recurso={}, cacheUtilizavel={}",path,usable,e);
       if(usable)return new Catalog(previous.dados(),true,previous.atualizadoEm());
-      throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,"Catálogo IBGE indisponível. Tente atualizar o campo.",e);
+      throw new com.vilaverde.erp.exception.LocalidadesUnavailableException(e,e instanceof UpstreamStatusException status?"HTTP_"+status.status:null);
     }
   }
   public Catalog estados() {return catalog("estados");}
