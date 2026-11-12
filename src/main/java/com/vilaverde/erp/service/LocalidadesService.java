@@ -14,13 +14,13 @@ public class LocalidadesService {
   public record Address(String uf,String nome,Integer id) {}
   private static final org.slf4j.Logger log=org.slf4j.LoggerFactory.getLogger(LocalidadesService.class);
   private final Map<String,Catalog> cache=new HashMap<>();
-  private final HttpClient http=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).followRedirects(HttpClient.Redirect.NEVER).build();
+  private final HttpClient http=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).followRedirects(HttpClient.Redirect.NEVER).build();
   private final ObjectMapper json=new ObjectMapper();
   // Test subclasses may replace the endpoint without exposing a configurable upstream in production.
   protected URI endpoint(String path) {
     return URI.create("https://servicodados.ibge.gov.br/api/v1/localidades/"+path+"?orderBy=nome");
   }
-  protected Duration requestBudget() {return Duration.ofSeconds(5);}
+  protected Duration requestBudget() {return Duration.ofSeconds(6);}
   private static final class UpstreamStatusException extends IOException {
     final int status;
     final boolean transientFailure;
@@ -32,7 +32,7 @@ public class LocalidadesService {
     boolean transientFailure() {return transientFailure;}
   }
   protected String fetch(String path) throws Exception {
-    // Both attempts share the original five-second budget; retries cannot multiply endpoint latency.
+    // Both attempts share six seconds. Even a cold states + municipalities lookup stays below the 15-second proxy timeout.
     long deadline=System.nanoTime()+requestBudget().toNanos();
     for(int attempt=0;;attempt++) {
       long remaining=deadline-System.nanoTime();
