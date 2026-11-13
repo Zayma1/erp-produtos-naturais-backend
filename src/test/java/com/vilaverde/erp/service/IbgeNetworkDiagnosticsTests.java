@@ -29,6 +29,19 @@ class IbgeNetworkDiagnosticsTests {
     do{report=probe.inspect();if(!report.state().equals("RUNNING"))return report;Thread.sleep(10);}while(System.nanoTime()<deadline);
     throw new AssertionError("Diagnostic did not finish");
   }
+  @Test void completionTimeComesFromWorkerRatherThanLaterPolling() throws Exception {
+    var completed=new CompletableFuture<Instant>();
+    class Probe extends IbgeNetworkDiagnostics {
+      Instant poll=Instant.parse("2026-11-13T00:00:00Z");
+      @Override protected Instant now(){
+        if(Thread.currentThread().isVirtual()){var at=Instant.parse("2026-11-13T00:00:02Z");completed.complete(at);return at;}
+        return poll;
+      }
+      @Override protected List<Check> checks(){return List.of();}
+    }
+    var probe=new Probe();probe.inspect();var finished=completed.get(5,TimeUnit.SECONDS);
+    probe.poll=probe.poll.plusSeconds(20);assertEquals(finished,await(probe).finishedAt());
+  }
   @Test void internalFailureAndDeadlineAreReportedInsteadOfHoldingTheHttpRequest() throws Exception {
     var failed=new IbgeNetworkDiagnostics(){@Override protected List<Check> checks(){throw new IllegalStateException("controlled failure");}};
     assertEquals("FAILED",await(failed).state());assertTrue(failed.inspect().checks().getFirst().details().toString().contains("controlled failure"));
@@ -42,12 +55,14 @@ class IbgeNetworkDiagnosticsTests {
   }
   @Test void realTcpAndHttpProbesReportControlledTransportAndElapsedTime() throws Exception {
     var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
-    server.createContext("/",exchange->{try{try{Thread.sleep(40);}catch(InterruptedException e){Thread.currentThread().interrupt();}exchange.getResponseHeaders().set("Content-Type","application/json");byte[] body="[]".getBytes();exchange.sendResponseHeaders(200,body.length);exchange.getResponseBody().write(body);}finally{exchange.close();}});
+    server.createContext("/",exchange->{try{try{Thread.sleep(40);}catch(InterruptedException e){Thread.currentThread().interrupt();}exchange.getResponseHeaders().set("Content-Type","application/json");byte[] body="[]".getBytes();exchange.sendResponseHeaders(exchange.getRequestURI().getPath().equals("/denied")?403:200,body.length);exchange.getResponseBody().write(body);}finally{exchange.close();}});
     server.start();
     try {
       var probe=new IbgeNetworkDiagnostics(){@Override protected URI endpoint(){return URI.create("http://127.0.0.1:"+server.getAddress().getPort()+"/");}};
       assertTrue(probe.tcp(InetAddress.getByName("127.0.0.1")).success());
       var response=probe.http(HttpClient.Version.HTTP_1_1,false);assertTrue(response.success(),response.details().toString());assertTrue(response.elapsedMs()>=30);assertTrue(response.details().contains("status=200"));assertTrue(response.details().contains("version=HTTP_1_1"));
+      var control=probe.control("CONTROL",URI.create("http://127.0.0.1:"+server.getAddress().getPort()+"/denied"));
+      assertTrue(control.success());assertTrue(control.details().contains("status=403"));
     }finally{server.stop(0);}
   }
 }
