@@ -22,6 +22,7 @@ public class SecurityConfig {
       .authorizeHttpRequests(a -> a
         .requestMatchers("/api/auth/csrf","/api/auth/login","/api/auth/esqueci-senha","/api/auth/redefinir-senha").permitAll()
         .requestMatchers("/api/auth/me","/api/auth/logout","/api/auth/alterar-senha").authenticated()
+        .requestMatchers("/api/localidades/diagnostico").hasRole("ADMIN")
         .requestMatchers("/api/localidades/**").authenticated()
         .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
         .requestMatchers(org.springframework.http.HttpMethod.GET,"/api/lojas/**").authenticated()
