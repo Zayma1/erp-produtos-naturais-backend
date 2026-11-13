@@ -34,6 +34,40 @@ class LocalidadesHttpTests {
     @Override protected Duration requestBudget(){return budget;}
     @Override protected Instant now(){return clock;}
   }
+  class RelayClient extends Client {
+    @Override protected URI relayEndpoint(String path){return URI.create("http://127.0.0.1:"+server.getAddress().getPort()+"/relay/"+path);}
+    @Override protected String relaySession(){return "SESSION=controlled";}
+  }
+  @Test void relayIsUsedAfterTransientFailureAndPreferredForTheNextCatalog() {
+    handler=(exchange,n)->{
+      boolean relay=exchange.getRequestURI().getPath().startsWith("/relay/");
+      assertEquals(relay?"SESSION=controlled":null,exchange.getRequestHeaders().getFirst("Cookie"));
+      reply(exchange,relay?200:503,relay?STATES:"{}");
+    };
+    var client=new RelayClient();assertEquals(1,client.estados().dados().size());assertEquals(2,requests.get());
+    client.catalog("estados/SC/municipios");assertEquals(3,requests.get());
+    handler=(exchange,n)->reply(exchange,exchange.getRequestURI().getPath().startsWith("/relay/")?503:200,STATES);
+    client.catalog("estados/SP/municipios");assertEquals(5,requests.get());
+    client.catalog("estados/RJ/municipios");assertEquals(6,requests.get());
+  }
+  @Test void permanentStatusAndRetryAfterDoNotTriggerTheRelay() {
+    for(int status:new int[]{403,429}) {
+      requests.set(0);handler=(exchange,n)->{assertFalse(exchange.getRequestURI().getPath().startsWith("/relay/"));if(status==429)exchange.getResponseHeaders().set("Retry-After","120");reply(exchange,status,"{}");};
+      assertThrows(ResponseStatusException.class,()->new RelayClient().estados());assertEquals(1,requests.get());
+    }
+  }
+  @Test void relayWithoutARequestSessionIsNeverCalled() {
+    handler=(exchange,n)->{assertFalse(exchange.getRequestURI().getPath().startsWith("/relay/"));assertNull(exchange.getRequestHeaders().getFirst("Cookie"));reply(exchange,n==1?503:200,STATES);};
+    var client=new RelayClient(){@Override protected String relaySession(){return null;}};
+    assertEquals(1,client.estados().dados().size());assertEquals(2,requests.get());
+  }
+  @Test void slowDirectAttemptLeavesTimeForRelayWithinOneBudget() {
+    handler=(exchange,n)->reply(exchange,200,STATES);var client=new RelayClient();client.estados();
+    handler=(exchange,n)->{if(!exchange.getRequestURI().getPath().startsWith("/relay/"))Thread.sleep(2000);reply(exchange,200,STATES);};
+    client.budget=Duration.ofSeconds(1);long start=System.nanoTime();
+    assertEquals(1,client.catalog("estados/SC/municipios").dados().size());
+    assertTrue(System.nanoTime()-start<Duration.ofMillis(1500).toNanos());assertEquals(3,requests.get());
+  }
   void reply(HttpExchange exchange,int status,String body) throws IOException {
     byte[] bytes=body.getBytes(StandardCharsets.UTF_8);exchange.getResponseHeaders().set("Content-Type","application/json; charset=utf-8");
     exchange.sendResponseHeaders(status,bytes.length);exchange.getResponseBody().write(bytes);

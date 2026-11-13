@@ -189,3 +189,5 @@ shared-database migration.
 Refunds, supplier credits,
 fiscal documents, exchanges, cross-store returns, quarantine stock, reversal,
 time-window policies and dependency upgrades are deferred.
+
+Consulta IBGE: [diagnóstico e configuração da alternativa regional](docs/IBGE_INCIDENT.md). O backend mantém validação/cache e pode usar a ponte autenticada do próprio frontend em São Paulo quando a rota direta falha. `IBGE_RELAY_ORIGIN=disabled` desabilita essa alternativa; em outros ambientes, configure uma origem HTTPS confiável explicitamente.
