@@ -3,6 +3,7 @@ package com.vilaverde.erp.service;
 import com.vilaverde.erp.dto.unidademedida.UnidadeMedidaRequestDTO;
 import com.vilaverde.erp.dto.unidademedida.UnidadeMedidaResponseDTO;
 import com.vilaverde.erp.entity.UnidadeMedida;
+import com.vilaverde.erp.exception.ConflictException;
 import com.vilaverde.erp.exception.ResourceNotFoundException;
 import com.vilaverde.erp.repository.UnidadeMedidaRepository;
 import java.util.List;
@@ -34,6 +35,10 @@ public class UnidadeMedidaService {
   @Transactional
   public UnidadeMedidaResponseDTO criar(UnidadeMedidaRequestDTO dto) {
     UnidadeMedida unidade = new UnidadeMedida();
+
+    if(buscarPorNome(unidade.getNome()) != null){
+      throw new ConflictException("Unidade de Medida já existe com esse nome");
+    }
     unidade.setSigla(dto.sigla());
     String name=dto.nome().strip().replaceAll("\\s+"," ");
     if(unidadeMedidaRepository.findAll().stream().anyMatch(r -> !r.getId().equals(unidade.getId()) && name.equalsIgnoreCase(r.getNome().strip().replaceAll("\\s+"," "))))throw new com.vilaverde.erp.exception.ConflictException("Nome de unidade já cadastrado");
@@ -49,6 +54,11 @@ public class UnidadeMedidaService {
     UnidadeMedidaRequestDTO dto
   ) {
     UnidadeMedida unidade = buscar(id);
+
+    if(buscarPorNome(unidade.getNome()) != null){
+      throw new ConflictException("Unidade de Medida já existe com esse nome");
+    }
+
     unidade.setSigla(dto.sigla());
     String name=dto.nome().strip().replaceAll("\\s+"," ");
     if(unidadeMedidaRepository.findAll().stream().anyMatch(r -> !r.getId().equals(unidade.getId()) && name.equalsIgnoreCase(r.getNome().strip().replaceAll("\\s+"," "))))throw new com.vilaverde.erp.exception.ConflictException("Nome de unidade já cadastrado");
@@ -70,5 +80,11 @@ public class UnidadeMedidaService {
       .orElseThrow(() ->
         new ResourceNotFoundException("Unidade de medida não encontrada")
       );
+  }
+
+  private UnidadeMedida buscarPorNome(String nome){
+    return unidadeMedidaRepository
+            .findByName(nome)
+            .orElse(null);
   }
 }

@@ -8,7 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.access.AccessDeniedException;
-@Component @RequiredArgsConstructor
+@Component
+@RequiredArgsConstructor
 public class AccessScope {
   private final UsuarioRepository users;
   public AuthPrincipal principal() {
