@@ -21,7 +21,23 @@ import org.springframework.test.context.DynamicPropertySource;
 import tools.jackson.databind.*;
 
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
+@org.springframework.context.annotation.Import(AuthenticationTests.ProbeFixture.class)
 class AuthenticationTests {
+  @org.springframework.boot.test.context.TestConfiguration
+  static class ProbeFixture {
+    @org.springframework.context.annotation.Bean @org.springframework.context.annotation.Primary
+    IbgeNetworkDiagnostics controlledNetworkDiagnostics(){return new IbgeNetworkDiagnostics(){
+      @Override protected List<Check> checks(){return List.of(new Check("controlled",true,0,List.of("offline CI fixture")));}
+    };}
+  }
+  @Test void networkDiagnosticsAreRestrictedToAdministrators() throws Exception {
+    assertEquals(401,new Browser().call("GET","/api/localidades/diagnostico",null,false).statusCode());
+    var m=authenticated("manager@example.test",manager);assertEquals(403,m.call("GET","/api/localidades/diagnostico",null,false).statusCode());
+    var e=authenticated("employee@example.test",employee);assertEquals(403,e.call("GET","/api/localidades/diagnostico",null,false).statusCode());
+    var a=authenticated("admin@example.test",admin);var response=a.call("GET","/api/localidades/diagnostico",null,false);
+    assertEquals(200,response.statusCode());assertEquals("no-store",response.headers().firstValue("Cache-Control").orElse(""));assertTrue(json.readTree(response.body()).has("state"));
+  }
+
   @DynamicPropertySource static void db(DynamicPropertyRegistry r) {
     r.add("spring.datasource.url",()->Objects.requireNonNull(System.getenv("TEST_DATABASE_URL")));
     r.add("spring.datasource.username",()->"stage7");r.add("spring.datasource.password",()->"local-stage7-only");
