@@ -29,7 +29,6 @@ public class UsuarioService {
   }
   private void revoke(Usuario u) {
     u.setAuthVersion(u.getAuthVersion()+1);
-    if(u.getId()!=null)jdbc.update("delete from password_reset where usuario_id=?",u.getId());
     jdbc.update("delete from spring_session where principal_name=?",u.getEmail());
   }
   private boolean activeAdmin(Usuario u) { return u.getCargo()==CargoUsuario.ADMIN && u.getStatus()==StatusCadastro.ATIVO && u.isRevisado(); }
@@ -66,9 +65,6 @@ public class UsuarioService {
     lock();var u=find(id);if(!encoder.matches(old,u.getSenhaHash()))throw new InvalidInputException("Senha atual inválida");
     if(encoder.matches(next,u.getSenhaHash()))throw new InvalidInputException("Escolha uma senha diferente da atual");
     revoke(u);password(u,next,false);users.save(u);
-  }
-  @Transactional public void recoverPassword(UUID id,String next) {
-    lock();var u=find(id);revoke(u);password(u,next,false);users.save(u);
   }
   @Transactional public void bootstrap(String nome,String email,String senha) {
     lock();if(users.findAll().stream().anyMatch(this::activeAdmin))throw new ConflictException("Já existe administrador ativo");

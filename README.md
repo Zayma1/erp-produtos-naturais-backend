@@ -1,6 +1,6 @@
 Etapa 14 integrada à `novaVersao`, com histórico e branches preservados. [Publicação e CI aprovadas](docs/STAGE14_RELEASE.md).
 
-Etapa 14 (`stage14-forms-auth`): login por campo `usuario` real ou e-mail, recuperação SMTP com CSRF, validação de documentos e localidades IBGE. Consulte [configuração da etapa 14](docs/STAGE14_FORMS_AUTH.md). V1–V8 preservadas; V9 Java faz preflight e registra o mapa de usuários em `usuario_login_migracao`.
+Etapa 14 (`stage14-forms-auth`): login por campo `usuario` real ou e-mail, redefinição administrativa com CSRF, validação de documentos e localidades IBGE. Consulte [configuração da etapa 14](docs/STAGE14_FORMS_AUTH.md). V1–V8 preservadas; V9 Java faz preflight e registra o mapa de usuários em `usuario_login_migracao`.
 
 # ERP Vila Verde — recebimento persistente
 
@@ -191,3 +191,5 @@ fiscal documents, exchanges, cross-store returns, quarantine stock, reversal,
 time-window policies and dependency upgrades are deferred.
 
 Consulta IBGE: [diagnóstico e configuração da alternativa regional](docs/IBGE_INCIDENT.md). O backend mantém validação/cache e pode usar a ponte autenticada do próprio frontend em São Paulo quando a rota direta falha. `IBGE_RELAY_ORIGIN=disabled` desabilita essa alternativa; em outros ambientes, configure uma origem HTTPS confiável explicitamente.
+
+Senhas esquecidas: [redefinição por ADMIN](docs/ADMIN_PASSWORD_RESET.md). Recuperação por e-mail e configuração SMTP foram removidas.

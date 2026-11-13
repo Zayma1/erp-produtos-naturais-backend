@@ -189,4 +189,14 @@ class MigrationTests {
   var rs=st.executeQuery("select usuario from usuario order by id");rs.next();assertEquals("same",rs.getString(1));rs.next();assertEquals("same-00000000",rs.getString(1));rs.next();assertEquals("admin",rs.getString(1));
   rs=st.executeQuery("select count(*) from usuario_login_migracao");rs.next();assertEquals(3,rs.getInt(1));
  }
+ @Test void emailRecoveryRemovalDeletesOnlyRetiredTokenStorage() throws Exception {
+  stage14("9").migrate();var st=connection.createStatement();String id="00000000-0000-4000-8000-000000000009";
+  st.execute("insert into usuario(id,nome,usuario,email,cargo,senha_hash,status,criado_em) values ('"+id+"','Existing','existing','existing@example.test','FUNC','preserved-hash','ATIVO',now())");
+  st.execute("insert into password_reset(token_hash,usuario_id,expires_at) values (repeat('a',64),'"+id+"',now()+interval '30 minutes')");
+  st.execute("insert into password_reset_attempt values (repeat('b',64),now(),1)");
+  stage14(null).migrate();stage14(null).migrate();
+  var rs=st.executeQuery("select to_regclass('password_reset'),to_regclass('password_reset_attempt')");rs.next();assertNull(rs.getString(1));assertNull(rs.getString(2));
+  rs=st.executeQuery("select usuario,senha_hash,status from usuario where id='"+id+"'");assertTrue(rs.next());assertEquals("existing",rs.getString(1));assertEquals("preserved-hash",rs.getString(2));assertEquals("ATIVO",rs.getString(3));
+ }
+
 }
