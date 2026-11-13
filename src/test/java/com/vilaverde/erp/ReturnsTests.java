@@ -91,9 +91,10 @@ class ReturnsTests {
   var schemas=document.get("components").get("schemas");
   assertTrue(document.get("paths").get("/api/localidades/estados").get("get").get("responses").has("200"));
   assertTrue(document.get("paths").get("/api/lojas").get("post").get("responses").has("201"));
-  assertTrue(document.get("paths").get("/api/auth/redefinir-senha").get("post").get("responses").has("200"));
-  for(String field:List.of("token","senha","confirmacao"))assertTrue(schemas.get("PasswordReset").get("properties").has(field));
-  assertFalse(schemas.get("Reset").get("properties").has("token"),"Administrative and public password reset schemas must remain distinct");
+  assertFalse(document.get("paths").has("/api/auth/redefinir-senha"));
+  assertFalse(document.get("paths").has("/api/auth/esqueci-senha"));
+  assertFalse(schemas.has("PasswordReset"));
+  assertTrue(schemas.get("Reset").get("properties").has("senha"));
   java.nio.file.Files.writeString(java.nio.file.Path.of("openapi-stage14.json"),contract);
  }
  VendaResponseDTO sale(String q,boolean complete) {

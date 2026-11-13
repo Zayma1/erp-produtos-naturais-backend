@@ -239,12 +239,20 @@ class AuthenticationTests {
     assertEquals(1,sql.queryForObject("select count(*) from usuario where cargo='ADMIN' and status='ATIVO' and revisado",Integer.class));
   }
 
-  @Test void recoveryIsPublicWithCsrfEvenForForcedOrRevokedSession() throws Exception {
-    var browser=new Browser();assertEquals(200,browser.login("admin@example.test",initial).statusCode());
-    assertEquals(200,browser.call("POST","/api/auth/esqueci-senha",Map.of("login","unknown"),true).statusCode());
-    users.reset(admin,"NewTemporary8291");browser.csrf=null;
-    assertEquals(200,browser.call("POST","/api/auth/esqueci-senha",Map.of("login","unknown"),true).statusCode());
-    assertEquals(401,browser.call("GET","/api/auth/me",null,false).statusCode());
-    assertEquals(401,new Browser().call("POST","/api/auth/esqueci-senha",Map.of("login","unknown"),false).statusCode());
+  @Test void onlyAdministratorsResetPasswordsAndOldSessionsAreRevoked() throws Exception {
+    var a=authenticated("admin@example.test",admin);var m=authenticated("manager@example.test",manager);var e=authenticated("employee@example.test",employee);
+    String path="/api/usuarios/"+employee+"/senha-temporaria",temporary="NewTemporary8291",next="ChangedByPerson8291";
+    assertEquals(403,e.call("POST",path,Map.of("senha",temporary),true).statusCode());
+    assertEquals(403,m.call("POST",path,Map.of("senha",temporary),true).statusCode());
+    assertEquals(403,a.call("POST",path,Map.of("senha",temporary),false).statusCode());
+    assertEquals(204,a.call("POST",path,Map.of("senha",temporary),true).statusCode());
+    assertEquals(401,e.call("GET","/api/auth/me",null,false).statusCode());e.csrf=null;
+    assertEquals(401,e.login("employee@example.test",permanent).statusCode());
+    assertEquals(200,e.login("employee@example.test",temporary).statusCode());assertTrue(e.me().get("alterarSenha").asBoolean());
+    assertEquals(403,e.call("GET","/api/clientes",null,false).statusCode());
+    assertEquals(204,e.call("POST","/api/auth/alterar-senha",Map.of("senhaAtual",temporary,"novaSenha",next),true).statusCode());
+    e.csrf=null;assertEquals(200,e.login("employee@example.test",next).statusCode());assertFalse(e.me().get("alterarSenha").asBoolean());
+    var account=repository.findById(employee).orElseThrow();assertEquals(CargoUsuario.FUNC,account.getCargo());assertEquals(Set.of(store),account.getLojas());assertEquals(StatusCadastro.ATIVO,account.getStatus());
+    for(String removed:List.of("/api/auth/esqueci-senha","/api/auth/redefinir-senha"))assertEquals(403,a.call("POST",removed,Map.of("token","old-token","senha",next),true).statusCode());
   }
 }

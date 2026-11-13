@@ -9,7 +9,7 @@ public class SessionGuard extends OncePerRequestFilter {
   private final UsuarioRepository users;
   public SessionGuard(UsuarioRepository users) { this.users=users; }
   @Override protected void doFilterInternal(HttpServletRequest request,HttpServletResponse response,FilterChain chain) throws ServletException,IOException {
-    boolean publicAuth=java.util.Set.of("/api/auth/csrf","/api/auth/login","/api/auth/esqueci-senha","/api/auth/redefinir-senha").contains(request.getRequestURI());
+    boolean publicAuth=java.util.Set.of("/api/auth/csrf","/api/auth/login").contains(request.getRequestURI());
     var a=SecurityContextHolder.getContext().getAuthentication();
     if (a!=null && a.getPrincipal() instanceof AuthPrincipal p) {
       var session=request.getSession(false);

@@ -8,8 +8,6 @@ import com.vilaverde.erp.exception.*;
 import com.vilaverde.erp.repository.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.net.*;
-import java.io.*;
 import java.time.*;
 import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -19,42 +17,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.*;
 @SpringBootTest
 class FormsAuthTests {
-  static final BlockingQueue<String> messages=new LinkedBlockingQueue<>();
-  static final ServerSocket smtp;
-  static {try{
-    smtp=new ServerSocket(0,10,InetAddress.getLoopbackAddress());
-    Thread.startVirtualThread(()->{while(!smtp.isClosed())try{
-      var socket=smtp.accept();Thread.startVirtualThread(()->{
-        try(socket;var reader=new BufferedReader(new InputStreamReader(socket.getInputStream()));var writer=new PrintWriter(socket.getOutputStream(),true)) {
-          writer.print("220 localhost SMTP\r\n");writer.flush();String line;boolean data=false;var body=new StringBuilder();
-          while((line=reader.readLine())!=null){
-            if(data){if(line.equals(".")){messages.add(body.toString());writer.print("250 captured\r\n");data=false;}else body.append(line).append('\n');}
-            else if(line.equals("DATA")){writer.print("354 end with dot\r\n");data=true;}
-            else if(line.equals("QUIT")){writer.print("221 bye\r\n");writer.flush();break;}
-            else writer.print("250 OK\r\n");writer.flush();
-          }
-        }catch(IOException e){throw new UncheckedIOException(e);}
-      });
-    }catch(IOException e){if(!smtp.isClosed())throw new UncheckedIOException(e);}});
-  }catch(IOException e){throw new ExceptionInInitializerError(e);}}
   @DynamicPropertySource static void db(DynamicPropertyRegistry r) {
     r.add("spring.datasource.url",()->Objects.requireNonNull(System.getenv("TEST_DATABASE_URL")));
     r.add("spring.datasource.username",()->"stage7");r.add("spring.datasource.password",()->"local-stage7-only");
-    r.add("spring.mail.host",()->"127.0.0.1");r.add("spring.mail.port",()->smtp.getLocalPort());
-    r.add("FRONTEND_PUBLIC_ORIGIN",()->"https://frontend.example.test");
   }
   @Autowired JdbcTemplate sql;@Autowired UsuarioService users;@Autowired UsuarioRepository accounts;
-  @Autowired LoginService login;@Autowired PasswordRecoveryService recovery;
+  @Autowired LoginService login;
   @Autowired ClienteService clients;@Autowired UnidadeMedidaService units;
   UUID admin;final String password="Password-8291";
-  @BeforeEach void seed(){sql.execute("truncate loja,usuario,cliente,fornecedor,unidade_medida,auth_attempt,password_reset_attempt cascade");messages.clear();users.bootstrap("Nome de exibição","person@example.test",password);admin=accounts.findByEmail("person@example.test").orElseThrow().getId();}
-  String token() throws Exception {
-    recovery.request("person");String message=messages.poll(5,TimeUnit.SECONDS);assertNotNull(message,"SMTP must capture email");
-    // Decode quoted-printable soft wrapping used by MIME if needed.
-    message=message.replace("=\n","").replace("=3D","=");
-    var matcher=java.util.regex.Pattern.compile("https://frontend.example.test/redefinir-senha#([A-Za-z0-9_-]{43})").matcher(message);
-    assertTrue(matcher.find(),message);return matcher.group(1);
-  }
+  @BeforeEach void seed(){sql.execute("truncate loja,usuario,cliente,fornecedor,unidade_medida,auth_attempt cascade");users.bootstrap("Nome de exibição","person@example.test",password);admin=accounts.findByEmail("person@example.test").orElseThrow().getId();}
   @Test void usernameIsIndependentCaseInsensitiveAndSharesLoginRateLimit(){
     assertEquals(200,login.login("PERSON",password).status());assertEquals(200,login.login("person@example.test",password).status());
     assertEquals(401,login.login("Nome de exibição",password).status());
@@ -65,32 +36,6 @@ class FormsAuthTests {
   @Test void duplicateAndMalformedUsersAreRejected(){
     assertThrows(ConflictException.class,()->users.criar(new UsuarioRequestDTO("Other","PERSON","other@example.test",password,CargoUsuario.FUNC,StatusCadastro.ATIVO,Set.of())));
     assertThrows(InvalidInputException.class,()->users.criar(new UsuarioRequestDTO("Other","bad user","other@example.test",password,CargoUsuario.FUNC,StatusCadastro.ATIVO,Set.of())));
-  }
-  @Test void smtpLinkTokenHashSingleUseAndSessionRevocation() throws Exception {
-    String raw=token();assertEquals(43,raw.length());assertEquals(1,sql.queryForObject("select count(*) from password_reset where token_hash=?",Integer.class,PasswordRecoveryService.hash(raw)));
-    long version=accounts.findById(admin).orElseThrow().getAuthVersion();
-    recovery.reset(raw,"NewPassword8291","NewPassword8291");
-    assertEquals(version+1,accounts.findById(admin).orElseThrow().getAuthVersion());assertEquals(200,login.login("person","NewPassword8291").status());
-    assertEquals(0,sql.queryForObject("select count(*) from password_reset",Integer.class));
-    assertThrows(InvalidInputException.class,()->recovery.reset(raw,password,password));
-  }
-  @Test void expiredMismatchAndConcurrentTokens() throws Exception {
-    String raw=token();assertThrows(InvalidInputException.class,()->recovery.reset(raw,password,"different"));
-    sql.update("update password_reset set expires_at=now()-interval '1 second'");assertThrows(InvalidInputException.class,()->recovery.reset(raw,password,password));
-    String valid=token();
-    try(var pool=Executors.newFixedThreadPool(2)) {
-      var gate=new CountDownLatch(1);var results=List.of(1,2).stream().map(n->pool.submit(()->{gate.await();try{recovery.reset(valid,"Concurrent8291","Concurrent8291");return true;}catch(InvalidInputException e){return false;}})).toList();gate.countDown();
-      int success=0;for(var result:results)if(result.get())success++;assertEquals(1,success);
-    }
-  }
-  @Test void recoveryNeverGrantsReviewStatusRoleOrStores() throws Exception {
-    sql.update("update usuario set revisado=false,status='INATIVO',cargo='FUNC' where id=?",admin);
-    String raw=token();recovery.reset(raw,password,password);var u=accounts.findById(admin).orElseThrow();
-    assertFalse(u.isRevisado());assertEquals(StatusCadastro.INATIVO,u.getStatus());assertEquals(CargoUsuario.FUNC,u.getCargo());assertTrue(u.getLojas().isEmpty());assertEquals(401,login.login("person",password).status());
-  }
-  @Test void requestsLimitedAcrossUsernameAndEmailUnknownSilent() throws Exception {
-    for(int i=0;i<4;i++)recovery.request(i%2==0?"person":"PERSON@example.test");assertEquals(3,messages.size());assertEquals(3,sql.queryForObject("select count(*) from password_reset",Integer.class));
-    recovery.request("unknown@example.test");assertEquals(3,messages.size());
   }
   @Test void documentVectorsAndMasks(){
     for(String v:List.of("04.252.011/0001-10","04252011000110","12.ABC.345/01DE-35","12abc34501de35"))assertTrue(Documents.valid(v,true),v);
